@@ -25,6 +25,40 @@ input{
 
 ```
 
+# Output Example
+
+```
+{
+                      "mem" => 572416,
+                 "mem.free" => 263075,
+               "processors" => 8,
+                   "uptime" => 10450679,
+          "instance.uptime" => 15409449,
+           "heap.committed" => 572416,
+                "heap.init" => 262144,
+                "heap.used" => 309340,
+                     "heap" => 3728384,
+             "threads.peak" => 35,
+           "threads.daemon" => 32,
+                  "threads" => 35,
+                  "classes" => 7918,
+           "classes.loaded" => 7919,
+         "classes.unloaded" => 1,
+     "gc.ps_scavenge.count" => 9,
+      "gc.ps_scavenge.time" => 74,
+    "gc.ps_marksweep.count" => 2,
+     "gc.ps_marksweep.time" => 125,
+                 "@version" => "1",
+               "@timestamp" => "2015-06-10T21:43:14.832Z",
+                     "name" => "test1",
+                     "host" => "myhost.com",
+                      "url" => "http://localhost:11100/content/management/metrics",
+                  "success" => true,
+             "responseCode" => 200,
+                     "type" => "springboot-metrics"
+}
+```
+
 ## Documentation
 
 Logstash provides infrastructure to automatically generate documentation for this plugin. We use the asciidoc format to write documentation so any comments in the source code will be first converted into asciidoc and then into html. All plugin documentation are placed under one [central location](http://www.elasticsearch.org/guide/en/logstash/current/).
