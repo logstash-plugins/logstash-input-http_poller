@@ -22,4 +22,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'logstash-codec-json'
   s.add_runtime_dependency 'stud'
   s.add_runtime_dependency 'rest-client'
+  s.add_development_dependency 'logstash-devutils'
 end
