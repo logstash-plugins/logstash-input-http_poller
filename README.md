@@ -1,8 +1,29 @@
-# Logstash Plugin
+# Logstash rest input plugin
 
 This is a plugin for [Logstash](https://github.com/elasticsearch/logstash).
 
+It allows you to call a rest API (that produces JSON currently) and send the resulting JSON in an logstash event.
+
+The idea behind this plugins came from a need to read springboot metrics endpoint, instead of configuring jmx to monitor my java application memory / gc/ etc.
+
+
+
 It is fully free and fully open source. The license is Apache 2.0, meaning you are pretty much free to use it however you want in whatever way.
+
+## Config Example
+
+```
+input{
+	rest{
+		urls => { "test1" => "http://localhost:11100/content/management/metrics"
+		          "test2" => "http://localhost:21100/content/management/metrics"}
+		interval => 60
+		timeout  => 60
+		type => "springboot-metrics"
+	}
+}
+
+```
 
 ## Documentation
 
