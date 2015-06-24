@@ -18,7 +18,7 @@ require "rest-client"
 #       }
 #    }
 
-class LogStash::Inputs::Rest < LogStash::Inputs::Base
+class LogStash::Inputs::HTTPPoller < LogStash::Inputs::Base
 
   config_name "rest"
   milestone 1

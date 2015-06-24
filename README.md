@@ -1,4 +1,6 @@
-# Logstash rest input plugin
+# Logstash HTTP input plugin
+
+# This is a fork of [logstash-input-rest](https://github.com/maximede/logstash-input-rest) by @maximede. This is a WIP we'll be adding tests and functionality to this guy.
 
 This is a plugin for [Logstash](https://github.com/elasticsearch/logstash).
 
