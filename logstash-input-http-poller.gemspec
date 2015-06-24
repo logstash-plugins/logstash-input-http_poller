@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name = 'logstash-input-http_poller'
+  s.name = 'logstash-input-http-poller'
   s.version         = '0.0.1'
   s.licenses = ['Apache License (2.0)']
   s.summary = "Placeholder"
