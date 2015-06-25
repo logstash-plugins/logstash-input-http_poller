@@ -9,19 +9,20 @@ require "manticore"
 # Read from a list of url returning some json
 # The config should look like this:
 #
-#     filter {
-#       rest {
-#               urls     => {"test1" => "http://localhost:11100/management/metrics"
-#		                         "test2" => "http://localhost:21100/management/metrics"}
-#               timeout  => 60
-#               interval => 60
+#     input {
+#       http-poller {
+#         urls => {
+#           "test1" => "http://localhost:9200"
+#		        "test2" => "http://localhost:9200/_cluster/health"
+#         }
+#         request_timeout => 60
+#         interval => 10
 #       }
 #    }
 
-class LogStash::Inputs::HTTPPoller < LogStash::Inputs::Base
+class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
-  config_name "rest"
-  milestone 1
+  config_name "http_poller"
 
   default :codec, "json"
 
@@ -60,7 +61,6 @@ class LogStash::Inputs::HTTPPoller < LogStash::Inputs::Base
   # Password to the trust store if required
   config :trust_store_path, :validate => :string
 
-
   public
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
@@ -73,41 +73,35 @@ class LogStash::Inputs::HTTPPoller < LogStash::Inputs::Base
   def run(queue)
     Stud.interval(@interval) do
       @urls.each do |name, url|
-        client.async.get(url) do |req|
-          req.on_success {|response| handle_success(name, url, response)}
-          req.on_failure {|exception| handle_failure(name, url, exception)}
+        @logger.debug? && @logger.debug("Will get url '#{name}' '#{url}")
+        client.async.get(url).
+          on_success {|response| handle_success(queue, name, url, response)}.
+          on_failure {|exception| handle_failure(queue, name, url, exception)}
         end
-      end
       client.execute!
     end
   end
 
   private
-  def handle_success(name, url, response)
-    @codec.decode(response) do |event|
+  def handle_success(queue, name, url, response)
+    @codec.decode(response.body) do |decoded|
+      event = LogStash::Event.new
+
       event["name"] = name
       event["host"] = @host
       event["url"] = url
-      event["success"] = true
       event["responseCode"] = response.code
+      event["message"] = decoded.to_hash
+      event["success"] = response.code >= 200 && response.code <= 299
 
-      case response.code
-        when 200
-          event["success"] = true
-        else
-          event["success"] = false
-      end
-      decorate(event)
       queue << event
     end
   end
 
   private
-  def handle_failure(name, url, exception)
+  def handle_failure(queue, name, url, exception)
     @logger.error("Cannot read URL! (#{exception}/#{exception.message})", :name => name, :url => url)
   end
-
-
 
   public
   def client_config
@@ -116,7 +110,7 @@ class LogStash::Inputs::HTTPPoller < LogStash::Inputs::Base
       socket_timeout: @socket_timeout,
       request_timeout: @request_timeout,
       follow_redirects: @follow_redirects,
-      automatic_retries: 3,
+      automatic_retries: @automatic_retries,
       pool_max: @pool_max,
       pool_max_per_route: @pool_max_per_route
     }
