@@ -56,10 +56,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   config :automatic_retries, :validate => :number, :default => 3
 
   # Path to trust store (.jks) containing CA certs
-  config :trust_store_path, :validate => :string
+  config :trust_store_path, :validate => :path
 
   # Password to the trust store if required
-  config :trust_store_path, :validate => :string
+  config :trust_store_password, :validate => :string
 
   public
   def register
