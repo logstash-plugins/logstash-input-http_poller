@@ -1,14 +1,12 @@
 # Logstash HTTP input plugin
 
-# This is a fork of [logstash-input-rest](https://github.com/maximede/logstash-input-rest) by @maximede. This is a WIP we'll be adding tests and functionality to this guy.
+## This plugin is a WIP! Expect things to break!
 
-This is a plugin for [Logstash](https://github.com/elasticsearch/logstash).
+This plugin is based off [logstash-input-rest](https://github.com/maximede/logstash-input-rest) by @maximede.
 
-It allows you to call a rest API (that produces JSON currently) and send the resulting JSON in an logstash event.
+This [Logstash](https://github.com/elasticsearch/logstash) input plugin allows you to call an HTTP API, decode the output of it into event(s), and send them on their merry way.
 
 The idea behind this plugins came from a need to read springboot metrics endpoint, instead of configuring jmx to monitor my java application memory / gc/ etc.
-
-
 
 It is fully free and fully open source. The license is Apache 2.0, meaning you are pretty much free to use it however you want in whatever way.
 
@@ -20,45 +18,10 @@ input{
 		urls => { "test1" => "http://localhost:11100/content/management/metrics"
 		          "test2" => "http://localhost:21100/content/management/metrics"}
 		interval => 60
-		timeout  => 60
-		type => "springboot-metrics"
+		type => "something-fancy"
 	}
 }
 
-```
-
-# Output Example
-
-```
-{
-                      "mem" => 572416,
-                 "mem.free" => 263075,
-               "processors" => 8,
-                   "uptime" => 10450679,
-          "instance.uptime" => 15409449,
-           "heap.committed" => 572416,
-                "heap.init" => 262144,
-                "heap.used" => 309340,
-                     "heap" => 3728384,
-             "threads.peak" => 35,
-           "threads.daemon" => 32,
-                  "threads" => 35,
-                  "classes" => 7918,
-           "classes.loaded" => 7919,
-         "classes.unloaded" => 1,
-     "gc.ps_scavenge.count" => 9,
-      "gc.ps_scavenge.time" => 74,
-    "gc.ps_marksweep.count" => 2,
-     "gc.ps_marksweep.time" => 125,
-                 "@version" => "1",
-               "@timestamp" => "2015-06-10T21:43:14.832Z",
-                     "name" => "test1",
-                     "host" => "myhost.com",
-                      "url" => "http://localhost:11100/content/management/metrics",
-                  "success" => true,
-             "responseCode" => 200,
-                     "type" => "springboot-metrics"
-}
 ```
 
 ## Documentation

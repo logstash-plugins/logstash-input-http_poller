@@ -5,12 +5,13 @@ require "socket" # for Socket.gethostname
 require "json"
 require "manticore"
 
-
-# Read from a list of url returning some json
+# Note. This plugin is a WIP! Things will change and break!
+#
+# Reads from a list of urls and decodes the body of the response with a codec
 # The config should look like this:
 #
 #     input {
-#       http-poller {
+#       http_poller {
 #         urls => {
 #           "test1" => "http://localhost:9200"
 #		        "test2" => "http://localhost:9200/_cluster/health"
