@@ -65,6 +65,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # Note, most .jks files created with keytool require a password!
   config :truststore_password, :validate => :string
 
+  # Enable cookie support. With this enabled the client will persist cookies
+  # across requests as a normal web browser would. Enabled by default
+  config :cookies, :validate => :boolean, :default => true
+
+  # If you'd like to use an HTTP proxy . This supports multiple configuration syntaxes:
+  # 1. Proxy host in form: http://proxy.org:1234
+  # 2. Proxy host in form: {host => "proxy.org", port => 80, scheme => 'http', user => 'username@host', password => 'password'}
+  # 3. Proxy host in form: {url =>  'http://proxy.org:1234', user => 'username@host', password => 'password'}
+  config :proxy
+
   public
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
@@ -116,11 +126,18 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       follow_redirects: @follow_redirects,
       automatic_retries: @automatic_retries,
       pool_max: @pool_max,
-      pool_max_per_route: @pool_max_per_route
+      pool_max_per_route: @pool_max_per_route,
+      cookies: @cookies,
     }
 
-    c[:ssl] = {}
+    if @proxy
+      # Symbolize keys if necessary
+      c[:proxy] = @proxy.is_a?(Hash) ?
+        @proxy.reduce({}) {|memo,(k,v)| memo[k.to_sym] = v; memo} :
+        @proxy
+    end
 
+    c[:ssl] = {}
     if @ca_path
       c[:ssl][:ca_file] = @ca_path
     end
@@ -134,7 +151,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
         c.merge!(truststore_password: @trust_store_password)
       end
     end
-    
+
     c
   end
 
