@@ -55,11 +55,15 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # How many times should the client retry a failing URL? Default is 3
   config :automatic_retries, :validate => :number, :default => 3
 
-  # Path to trust store (.jks) containing CA certs
-  config :trust_store_path, :validate => :path
+  # If you need to use a custom X.509 CA (.pem certs) specify the path to that here
+  config :ca_path, :validate => :path
 
-  # Password to the trust store if required
-  config :trust_store_password, :validate => :string
+  # If you need to use a custom keystore (.jks) specify that here
+  config :truststore_path, :validate => :path
+
+  # Specify the keystore password here.
+  # Note, most .jks files created with keytool require a password!
+  config :truststore_password, :validate => :string
 
   public
   def register
@@ -115,16 +119,22 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       pool_max_per_route: @pool_max_per_route
     }
 
-    if (@trust_store_path)
+    c[:ssl] = {}
+
+    if @ca_path
+      c[:ssl][:ca_file] = @ca_path
+    end
+
+    if (@truststore_path)
       c.merge!(
         truststore: @trust_store_path
       )
 
-      if (@trust_store_password)
-        c.merge!(truststore_password: @trust)
+      if (@truststore_password)
+        c.merge!(truststore_password: @trust_store_password)
       end
     end
-
+    
     c
   end
 
