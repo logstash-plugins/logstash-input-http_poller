@@ -80,21 +80,25 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
-    @logger.info("Registering http-poller Input", :type => @type,
+    @logger.info("Registering http_poller Input", :type => @type,
                  :urls => @urls, :interval => @interval, :timeout => @timeout)
   end # def register
 
   public
   def run(queue)
     Stud.interval(@interval) do
-      @urls.each do |name, url|
-        @logger.debug? && @logger.debug("Will get url '#{name}' '#{url}")
-        client.async.get(url).
-          on_success {|response| handle_success(queue, name, url, response)}.
-          on_failure {|exception| handle_failure(queue, name, url, exception)}
-        end
-      client.execute!
+      run_once(queue)
     end
+  end
+
+  def run_once(queue)
+    @urls.each do |name, url|
+      @logger.debug? && @logger.debug("Will get url '#{name}' '#{url}")
+      client.async.get(url).
+        on_success {|response| handle_success(queue, name, url, response)}.
+        on_failure {|exception| handle_failure(queue, name, url, exception)}
+      end
+    client.execute!
   end
 
   private
