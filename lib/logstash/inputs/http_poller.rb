@@ -1,8 +1,8 @@
 # encoding: utf-8
 require "logstash/inputs/base"
 require "logstash/namespace"
+require "logstash/plugin_mixins/http_client"
 require "socket" # for Socket.gethostname
-require "json"
 require "manticore"
 
 # Note. This plugin is a WIP! Things will change and break!
@@ -10,18 +10,36 @@ require "manticore"
 # Reads from a list of urls and decodes the body of the response with a codec
 # The config should look like this:
 #
-#     input {
-#       http_poller {
-#         urls => {
-#           "test1" => "http://localhost:9200"
-#		        "test2" => "http://localhost:9200/_cluster/health"
-#         }
-#         request_timeout => 60
-#         interval => 10
-#       }
-#    }
+# input {
+#   http_poller {
+#     urls => {
+#       "test1" => "http://localhost:9200"
+#     "test2" => "http://localhost:9200/_cluster/health"
+#   }
+#   request_timeout => 60
+#   interval => 10
+#   codec => "json"
+# }
+# }
+#
+# # This plugin uses metadata, which by default is not serialized
+# # You'll need a filter like this to preserve the poller metadata
+# # This metadata includes the name, url, response time, headers, and other goodies.
+# filter {
+#   mutate {
+#     add_field => [ "_http_poller_metadata", "%{[@metadata][http_poller]}" ]
+#   }
+# }
+#
+#
+# output {
+#   stdout {
+#     codec => rubydebug
+#   }
+# }
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
+  include LogStash::PluginMixins::HttpClient
 
   config_name "http_poller"
 
@@ -35,46 +53,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # How often  (in seconds) the urls will be called
   config :interval, :validate => :number, :required => true
 
-  # Timeout (in seconds) for the entire request
-  config :request_timeout, :validate => :number, :default => 60
-
-  # Timeout (in seconds) to wait for data on the socket. Default is 10s
-  config :socket_timeout, :validate => :number, :default => 10
-
-  # Timeout (in seconds) to wait for a connection to be established. Default is 10s
-  config :connect_timeout, :validate => :number, :default => 10
-
-  # Should redirects be followed? Defaults to true
-  config :follow_redirects, :validate => :boolean, :default => true
-
-  # Max number of concurrent connections. Defaults to 50
-  config :pool_max, :validate => :number, :default => 50
-
-  # Max number of concurrent connections to a single host. Defaults to 25
-  config :pool_max_per_route, :validate => :number, :default => 25
-
-  # How many times should the client retry a failing URL? Default is 3
-  config :automatic_retries, :validate => :number, :default => 3
-
-  # If you need to use a custom X.509 CA (.pem certs) specify the path to that here
-  config :ca_path, :validate => :path
-
-  # If you need to use a custom keystore (.jks) specify that here
-  config :truststore_path, :validate => :path
-
-  # Specify the keystore password here.
-  # Note, most .jks files created with keytool require a password!
-  config :truststore_password, :validate => :string
-
-  # Enable cookie support. With this enabled the client will persist cookies
-  # across requests as a normal web browser would. Enabled by default
-  config :cookies, :validate => :boolean, :default => true
-
-  # If you'd like to use an HTTP proxy . This supports multiple configuration syntaxes:
-  # 1. Proxy host in form: http://proxy.org:1234
-  # 2. Proxy host in form: {host => "proxy.org", port => 80, scheme => 'http', user => 'username@host', password => 'password'}
-  # 3. Proxy host in form: {url =>  'http://proxy.org:1234', user => 'username@host', password => 'password'}
-  config :proxy
+  # If you'd like to work with the request/response metadata
+  # Set this value to the name of the field you'd like to store a nested
+  # hash of metadata.
+  config :metadata_target, :validate => :string, :default => '@metadata'
 
   public
   def register
@@ -91,77 +73,108 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     end
   end
 
+  private
   def run_once(queue)
     @urls.each do |name, url|
-      @logger.debug? && @logger.debug("Will get url '#{name}' '#{url}")
-      client.async.get(url).
-        on_success {|response| handle_success(queue, name, url, response)}.
-        on_failure {|exception| handle_failure(queue, name, url, exception)}
+      request_async(queue, name, url)
+    end
+
+    # TODO: Remove this once our patch to manticore is accepted. The real callback should work
+    # Some exceptions are only returned here! There is no callback,
+    # for example, if there is a bad port number.
+    # https://github.com/cheald/manticore/issues/22
+    client.execute!.each_with_index do |resp, i|
+      if resp.is_a?(java.lang.Exception) || resp.is_a?(StandardError)
+        name = @urls.keys[i]
+        url = @urls[name]
+        # We can't report the time here because this is as slow as the slowest request
+        # This is all temporary code anyway
+        handle_failure(queue, name, url, resp, nil)
       end
-    client.execute!
-  end
-
-  private
-  def handle_success(queue, name, url, response)
-    @codec.decode(response.body) do |decoded|
-      event = LogStash::Event.new
-
-      event["name"] = name
-      event["host"] = @host
-      event["url"] = url
-      event["responseCode"] = response.code
-      event["message"] = decoded.to_hash
-      event["success"] = response.code >= 200 && response.code <= 299
-
-      queue << event
     end
   end
 
   private
-  def handle_failure(queue, name, url, exception)
-    @logger.error("Cannot read URL! (#{exception}/#{exception.message})", :name => name, :url => url)
-  end
-
-  public
-  def client_config
-    c = {
-      connect_timeout: @connect_timeout,
-      socket_timeout: @socket_timeout,
-      request_timeout: @request_timeout,
-      follow_redirects: @follow_redirects,
-      automatic_retries: @automatic_retries,
-      pool_max: @pool_max,
-      pool_max_per_route: @pool_max_per_route,
-      cookies: @cookies,
+  def request_async(queue, name, url)
+    @logger.debug? && @logger.debug("Fetching URL", :name => name, :url => url)
+    started = Time.now
+    client.async.get(url).
+      on_success {|response| handle_success(queue, name, url, response, Time.now - started)}.
+      on_failure {|exception|
+      handle_failure(queue, name, url, exception, Time.now - started)
     }
-
-    if @proxy
-      # Symbolize keys if necessary
-      c[:proxy] = @proxy.is_a?(Hash) ?
-        @proxy.reduce({}) {|memo,(k,v)| memo[k.to_sym] = v; memo} :
-        @proxy
-    end
-
-    c[:ssl] = {}
-    if @ca_path
-      c[:ssl][:ca_file] = @ca_path
-    end
-
-    if (@truststore_path)
-      c.merge!(
-        truststore: @trust_store_path
-      )
-
-      if (@truststore_password)
-        c.merge!(truststore_password: @trust_store_password)
-      end
-    end
-
-    c
   end
 
-  public
-  def client
-    @client ||= Manticore::Client.new(client_config)
+  private
+  def handle_success(queue, name, url, response, execution_time)
+    @codec.decode(response.body) do |decoded|
+      handle_decoded_event(queue, name, url, response, decoded, execution_time)
+    end
+  end
+
+  private
+  def handle_decoded_event(queue, name, url, response, event, execution_time)
+    apply_metadata(event, name, url, response, execution_time)
+    queue << event
+  rescue StandardError, java.lang.Exception => e
+    @logger.error? && @logger.error("Error eventifying response!",
+                                    :exception => e,
+                                    :exception_message => e.message,
+                                    :name => name,
+                                    :url => url,
+                                    :response => response
+    )
+  end
+
+  private
+  def handle_failure(queue, name, url, exception, execution_time)
+    event = LogStash::Event.new
+    apply_metadata(event, name, url)
+
+    event.tag("_http_request_failure")
+
+    # This is also in the metadata, but we send it anyone because we want this
+    # persisted by default, whereas metadata isn't. People don't like mysterious errors
+    event["_http_request_failure"] = {
+      "url" => url,
+      "name" => name,
+      "error" => exception.to_s,
+      "runtime_seconds" => execution_time
+   }
+
+    queue << event
+  rescue StandardError, java.lang.Exception => e
+      @logger.error? && @logger.error("Cannot read URL or send the error as an event!",
+                                      :exception => exception,
+                                      :exception_message => exception.message,
+                                      :name => name,
+                                      :url => url
+      )
+  end
+
+  private
+  def apply_metadata(event, name, url, response=nil, execution_time=nil)
+    return unless @metadata_target
+    event[@metadata_target] = event_metadata(name, url, response, execution_time)
+  end
+
+  private
+  def event_metadata(name, url, response=nil, execution_time=nil)
+    m = {
+        "name" => name,
+        "host" => @host,
+        "url" => url
+      }
+
+    m["runtime_seconds"] = execution_time
+
+    if response
+      m["code"] = response.code
+      m["response_headers"] = response.headers
+      m["response_message"] = response.message
+      m["times_retried"] = response.times_retried
+    end
+
+    m
   end
 end
