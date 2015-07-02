@@ -13,24 +13,23 @@ require "manticore"
 # input {
 #   http_poller {
 #     urls => {
-#       "test1" => "http://localhost:9200"
-#     "test2" => "http://localhost:9200/_cluster/health"
-#   }
-#   request_timeout => 60
-#   interval => 10
-#   codec => "json"
-# }
-# }
-#
-# # This plugin uses metadata, which by default is not serialized
-# # You'll need a filter like this to preserve the poller metadata
-# # This metadata includes the name, url, response time, headers, and other goodies.
-# filter {
-#   mutate {
-#     add_field => [ "_http_poller_metadata", "%{[@metadata][http_poller]}" ]
+#       test1 => "http://localhost:9200"
+#     test2 => {
+#       # Supports all options supported by ruby's Manticore HTTP client
+#       method => get
+#     url => "http://localhost:9200/_cluster/health"
+#     headers => {
+#       Accept => "application/json"
+#     }
 #   }
 # }
-#
+# request_timeout => 60
+# interval => 60
+# codec => "json"
+# # A hash of request metadata info (timing, response headers, etc.) will be sent here
+# metadata_target => "_http_poller_metadata"
+# }
+# }
 #
 # output {
 #   stdout {
