@@ -14,21 +14,25 @@ require "manticore"
 #   http_poller {
 #     urls => {
 #       test1 => "http://localhost:9200"
-#     test2 => {
-#       # Supports all options supported by ruby's Manticore HTTP client
-#       method => get
-#     url => "http://localhost:9200/_cluster/health"
-#     headers => {
-#       Accept => "application/json"
+#       test2 => {
+#         # Supports all options supported by ruby's Manticore HTTP client
+#         method => get
+#         url => "http://localhost:9200/_cluster/health"
+#         headers => {
+#           Accept => "application/json"
+#         }
+#         auth => {
+#           user => "AzureDiamond"
+#           pass => "hunter2"
+#         }
+#       }
 #     }
+#     request_timeout => 60
+#     interval => 60
+#     codec => "json"
+#     # A hash of request metadata info (timing, response headers, etc.) will be sent here
+#     metadata_target => "_http_poller_metadata"
 #   }
-# }
-# request_timeout => 60
-# interval => 60
-# codec => "json"
-# # A hash of request metadata info (timing, response headers, etc.) will be sent here
-# metadata_target => "_http_poller_metadata"
-# }
 # }
 #
 # output {
@@ -77,12 +81,27 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     elsif url_or_spec.is_a?(Hash)
       # The client will expect keys / values
       spec = Hash[url_or_spec.clone.map {|k,v| [k.to_sym, v] }] # symbolize keys
+
+      # method and url aren't really part of the options, so we pull them out
       method = (spec.delete(:method) || :get).to_sym.downcase
       url = spec.delete(:url)
-      raise ArgumentError, "No URL provided for request! #{url_or_spec}" unless url
+
+      raise LogStash::ConfigurationError, "No URL provided for request! #{url_or_spec}" unless url
+
+      # We need these strings to be keywords!
+      spec[:auth] = {user: spec[:auth]["user"], pass: spec[:auth]["pass"]} if spec[:auth]
+      if spec[:auth]
+        if !spec[:auth][:user]
+          raise LogStash::ConfigurationError, "Auth was specified, but 'user' was not!"
+        end
+        if !spec[:auth][:pass]
+          raise LogStash::ConfigurationError, "Auth was specified, but 'pass' was not!"
+        end
+      end
+
       [method, url, spec]
     else
-      raise ArgumentError, "Invalid URL or request spec: '#{url_or_spec}', expected a String or Hash!"
+      raise LogStash::ConfigurationError, "Invalid URL or request spec: '#{url_or_spec}', expected a String or Hash!"
     end
   end
 
