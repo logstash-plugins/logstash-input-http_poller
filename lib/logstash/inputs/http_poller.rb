@@ -67,17 +67,19 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     @logger.info("Registering http_poller Input", :type => @type,
                  :urls => @urls, :interval => @interval, :timeout => @timeout)
-  end # def register
+
+    setup_requests!
+  end
 
   private
-  def requests
-    @requests ||= Hash[@urls.map {|name, url| [name, normalize_request(url)] }]
+  def setup_requests!
+    @requests = Hash[@urls.map {|name, url| [name, normalize_request(url)] }]
   end
 
   private
   def normalize_request(url_or_spec)
     if url_or_spec.is_a?(String)
-      [:get, url_or_spec]
+      res = [:get, url_or_spec]
     elsif url_or_spec.is_a?(Hash)
       # The client will expect keys / values
       spec = Hash[url_or_spec.clone.map {|k,v| [k.to_sym, v] }] # symbolize keys
@@ -86,23 +88,35 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       method = (spec.delete(:method) || :get).to_sym.downcase
       url = spec.delete(:url)
 
-      raise LogStash::ConfigurationError, "No URL provided for request! #{url_or_spec}" unless url
-
       # We need these strings to be keywords!
       spec[:auth] = {user: spec[:auth]["user"], pass: spec[:auth]["pass"]} if spec[:auth]
-      if spec[:auth]
-        if !spec[:auth][:user]
-          raise LogStash::ConfigurationError, "Auth was specified, but 'user' was not!"
-        end
-        if !spec[:auth][:pass]
-          raise LogStash::ConfigurationError, "Auth was specified, but 'pass' was not!"
-        end
-      end
 
-      [method, url, spec]
+      res = [method, url, spec]
     else
       raise LogStash::ConfigurationError, "Invalid URL or request spec: '#{url_or_spec}', expected a String or Hash!"
     end
+
+    validate_request!(url_or_spec, res)
+    res
+  end
+
+  private
+  def validate_request!(url_or_spec, request)
+    method, url, spec = request
+
+    raise LogStash::ConfigurationError, "Invalid URL #{url}" unless URI::DEFAULT_PARSER.regexp[:ABS_URI].match(url)
+
+    raise LogStash::ConfigurationError, "No URL provided for request! #{url_or_spec}" unless url
+    if spec && spec[:auth]
+      if !spec[:auth][:user]
+        raise LogStash::ConfigurationError, "Auth was specified, but 'user' was not!"
+      end
+      if !spec[:auth][:pass]
+        raise LogStash::ConfigurationError, "Auth was specified, but 'pass' was not!"
+      end
+    end
+
+    request
   end
 
   public
@@ -114,7 +128,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   private
   def run_once(queue)
-    requests.each do |name, request|
+    @requests.each do |name, request|
       request_async(queue, name, request)
     end
 
@@ -124,8 +138,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     # https://github.com/cheald/manticore/issues/22
     client.execute!.each_with_index do |resp, i|
       if resp.is_a?(java.lang.Exception) || resp.is_a?(StandardError)
-        name = requests.keys[i]
-        request = requests[name]
+        name = @requests.keys[i]
+        request = @requests[name]
         # We can't report the time here because this is as slow as the slowest request
         # This is all temporary code anyway
         handle_failure(queue, name, request, resp, nil)

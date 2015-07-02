@@ -23,7 +23,11 @@ describe LogStash::Inputs::HTTP_Poller do
   }
   let(:klass) { LogStash::Inputs::HTTP_Poller }
 
-  subject { klass.new(default_opts) }
+  subject {
+    s = klass.new(default_opts)
+    s.register # We can't use a before block here because of rspec scoping
+    s
+  }
 
   describe "#run" do
     it "should run at the specified interval" do
@@ -67,6 +71,7 @@ describe LogStash::Inputs::HTTP_Poller do
     }
 
     before do
+      poller.register
       allow(poller).to receive(:handle_failure).and_call_original
       allow(poller).to receive(:handle_success)
       event # materialize the subject
@@ -98,7 +103,7 @@ describe LogStash::Inputs::HTTP_Poller do
   context "with a non responsive server" do
     context "due to a non-existant host" do # Fail with handlers
       let(:name) { default_name }
-      let(:url) { "thouetnhoeu89ueoueohtueohtneuohn" }
+      let(:url) { "http://thouetnhoeu89ueoueohtueohtneuohn" }
       let(:code) { nil } # no response expected
 
       let(:settings) { default_opts.merge("urls" => { name => url}) }
@@ -120,6 +125,9 @@ describe LogStash::Inputs::HTTP_Poller do
 
   describe "a codec mismatch" do
     let(:instance) { klass.new(default_opts) }
+    before do
+      instance.register
+    end
     subject(:qmsg) {
       queue.pop(true)
     }
@@ -152,6 +160,7 @@ describe LogStash::Inputs::HTTP_Poller do
     }
 
     before do
+      instance.register
       u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
       instance.client.stub(u,
                            :body => LogStash::Json.dump(payload),
