@@ -66,6 +66,27 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
                  :urls => @urls, :interval => @interval, :timeout => @timeout)
   end # def register
 
+  private
+  def requests
+    @requests ||= Hash[@urls.map {|name, url| [name, normalize_request(url)] }]
+  end
+
+  private
+  def normalize_request(url_or_spec)
+    if url_or_spec.is_a?(String)
+      [:get, url_or_spec]
+    elsif url_or_spec.is_a?(Hash)
+      # The client will expect keys / values
+      spec = Hash[url_or_spec.clone.map {|k,v| [k.to_sym, v] }] # symbolize keys
+      method = (spec.delete(:method) || :get).to_sym.downcase
+      url = spec.delete(:url)
+      raise ArgumentError, "No URL provided for request! #{url_or_spec}" unless url
+      [method, url, spec]
+    else
+      raise ArgumentError, "Invalid URL or request spec: '#{url_or_spec}', expected a String or Hash!"
+    end
+  end
+
   public
   def run(queue)
     Stud.interval(@interval) do
@@ -75,8 +96,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   private
   def run_once(queue)
-    @urls.each do |name, url|
-      request_async(queue, name, url)
+    requests.each do |name, request|
+      request_async(queue, name, request)
     end
 
     # TODO: Remove this once our patch to manticore is accepted. The real callback should work
@@ -85,58 +106,60 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     # https://github.com/cheald/manticore/issues/22
     client.execute!.each_with_index do |resp, i|
       if resp.is_a?(java.lang.Exception) || resp.is_a?(StandardError)
-        name = @urls.keys[i]
-        url = @urls[name]
+        name = requests.keys[i]
+        request = requests[name]
         # We can't report the time here because this is as slow as the slowest request
         # This is all temporary code anyway
-        handle_failure(queue, name, url, resp, nil)
+        handle_failure(queue, name, request, resp, nil)
       end
     end
   end
 
   private
-  def request_async(queue, name, url)
-    @logger.debug? && @logger.debug("Fetching URL", :name => name, :url => url)
+  def request_async(queue, name, request)
+    @logger.debug? && @logger.debug("Fetching URL", :name => name, :url => request)
     started = Time.now
-    client.async.get(url).
-      on_success {|response| handle_success(queue, name, url, response, Time.now - started)}.
+
+    method, request_opts = request
+    client.async.send(method, request_opts).
+      on_success {|response| handle_success(queue, name, request, response, Time.now - started)}.
       on_failure {|exception|
-      handle_failure(queue, name, url, exception, Time.now - started)
+      handle_failure(queue, name, request, exception, Time.now - started)
     }
   end
 
   private
-  def handle_success(queue, name, url, response, execution_time)
+  def handle_success(queue, name, request, response, execution_time)
     @codec.decode(response.body) do |decoded|
-      handle_decoded_event(queue, name, url, response, decoded, execution_time)
+      handle_decoded_event(queue, name, request, response, decoded, execution_time)
     end
   end
 
   private
-  def handle_decoded_event(queue, name, url, response, event, execution_time)
-    apply_metadata(event, name, url, response, execution_time)
+  def handle_decoded_event(queue, name, request, response, event, execution_time)
+    apply_metadata(event, name, request, response, execution_time)
     queue << event
   rescue StandardError, java.lang.Exception => e
     @logger.error? && @logger.error("Error eventifying response!",
                                     :exception => e,
                                     :exception_message => e.message,
                                     :name => name,
-                                    :url => url,
+                                    :url => request,
                                     :response => response
     )
   end
 
   private
-  def handle_failure(queue, name, url, exception, execution_time)
+  def handle_failure(queue, name, request, exception, execution_time)
     event = LogStash::Event.new
-    apply_metadata(event, name, url)
+    apply_metadata(event, name, request)
 
     event.tag("_http_request_failure")
 
     # This is also in the metadata, but we send it anyone because we want this
     # persisted by default, whereas metadata isn't. People don't like mysterious errors
     event["_http_request_failure"] = {
-      "url" => url,
+      "url" => @urls[name], # We want the exact parameter they passed in
       "name" => name,
       "error" => exception.to_s,
       "runtime_seconds" => execution_time
@@ -148,22 +171,22 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
                                       :exception => exception,
                                       :exception_message => exception.message,
                                       :name => name,
-                                      :url => url
+                                      :url => request
       )
   end
 
   private
-  def apply_metadata(event, name, url, response=nil, execution_time=nil)
+  def apply_metadata(event, name, request, response=nil, execution_time=nil)
     return unless @metadata_target
-    event[@metadata_target] = event_metadata(name, url, response, execution_time)
+    event[@metadata_target] = event_metadata(name, request, response, execution_time)
   end
 
   private
-  def event_metadata(name, url, response=nil, execution_time=nil)
+  def event_metadata(name, request, response=nil, execution_time=nil)
     m = {
         "name" => name,
         "host" => @host,
-        "url" => url
+        "url" => @urls[name]
       }
 
     m["runtime_seconds"] = execution_time
