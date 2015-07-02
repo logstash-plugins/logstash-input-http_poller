@@ -25,6 +25,10 @@ describe LogStash::Inputs::HTTP_Poller do
 
   subject { klass.new(default_opts) }
 
+  before do
+    #subject.register
+  end
+
   describe "#run" do
     it "should run at the specified interval" do
       expect(Stud).to receive(:interval).with(default_interval).once
@@ -35,7 +39,8 @@ describe LogStash::Inputs::HTTP_Poller do
   describe "#run_once" do
     it "should issue an async request for each url" do
       default_urls.each { |name, url|
-        expect(subject).to receive(:request_async).with(queue, name, url).once
+        normalized_url = subject.send(:normalize_request, url)
+        expect(subject).to receive(:request_async).with(queue, name, normalized_url).once
       }
 
       subject.send(:run_once, queue) # :run_once is a private method
@@ -136,7 +141,7 @@ describe LogStash::Inputs::HTTP_Poller do
     end
   end
 
-  describe "a valid decoded response" do
+  describe "a valid request and decoded response" do
     let(:payload) { {"a" => 2, "hello" => ["a", "b", "c"]} }
     let(:opts) { default_opts }
     let(:instance) {
@@ -151,7 +156,8 @@ describe LogStash::Inputs::HTTP_Poller do
     }
 
     before do
-      instance.client.stub(url,
+      u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
+      instance.client.stub(u,
                            :body => LogStash::Json.dump(payload),
                            :code => code
       )
@@ -174,6 +180,89 @@ describe LogStash::Inputs::HTTP_Poller do
       it "should not have any metadata on the event" do
         instance.send(:run_once, queue)
         expect(event[metadata_target]).to be_nil
+      end
+    end
+
+    context "with a complex URL spec" do
+      let(:url) {
+        {
+          "method" => "get",
+          "url" => default_url,
+          "headers" => {
+            "X-Fry" => "I'm having one of those things, like a headache, with pictures..."
+          }
+        }
+      }
+      let(:opts) {
+        {
+          "interval" => default_interval,
+          "urls" => {
+            default_name => url
+          },
+          "codec" => "json",
+          "metadata_target" => metadata_target
+        }
+      }
+
+      include_examples("matching metadata")
+
+      it "should have a matching message" do
+        expect(event.to_hash).to include(payload)
+      end
+    end
+  end
+
+  describe "normalizing a request spec" do
+    shared_examples "a normalized request" do
+      it "should set the method correctly" do
+        expect(normalized.first).to eql(spec_method.to_sym)
+      end
+
+      it "should set the options to the URL string" do
+        expect(normalized[1]).to eql(spec_url)
+      end
+
+      it "should to set additional options correctly" do
+        opts = normalized.length > 2 ? normalized[2] : nil
+        expect(opts).to eql(spec_opts)
+      end
+    end
+
+    let(:normalized) { subject.send(:normalize_request, url) }
+
+    describe "a string URL" do
+      let(:url) { "http://localhost:3000" }
+      let(:spec_url) { url }
+      let(:spec_method) { :get }
+      let(:spec_opts) { nil }
+
+      include_examples("a normalized request")
+    end
+
+    describe "URL specs" do
+      context "with basic opts" do
+        let(:spec_url) { "http://localhost:3000" }
+        let(:spec_method) { "post" }
+        let(:spec_opts) { {:"X-Bender" => "Je Suis Napoleon!"} }
+
+        let(:url) {
+          {
+            "url" => spec_url,
+            "method" => spec_method,
+          }.merge(Hash[spec_opts.map {|k,v| [k.to_s,v]}])
+        }
+
+        include_examples("a normalized request")
+      end
+
+      context "missing an URL" do
+        let(:url) { {"method" => "get"} }
+
+        it "should raise an error" do
+          expect {
+            normalized
+          }.to raise_error(ArgumentError)
+        end
       end
     end
   end
