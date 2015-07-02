@@ -25,10 +25,6 @@ describe LogStash::Inputs::HTTP_Poller do
 
   subject { klass.new(default_opts) }
 
-  before do
-    #subject.register
-  end
-
   describe "#run" do
     it "should run at the specified interval" do
       expect(Stud).to receive(:interval).with(default_interval).once
