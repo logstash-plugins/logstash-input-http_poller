@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "logstash-core", '>= 1.5.0', '< 2.0.0'
   s.add_runtime_dependency 'logstash-codec-plain'
   s.add_runtime_dependency 'logstash-codec-json'
-  s.add_runtime_dependency 'logstash-mixin-http_client', ">= 0.0.1"
+  s.add_runtime_dependency 'logstash-mixin-http_client', ">= 1.0.0"
   s.add_runtime_dependency 'stud'
   s.add_runtime_dependency 'manticore'
   
