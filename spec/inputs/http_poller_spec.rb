@@ -111,20 +111,20 @@ describe LogStash::Inputs::HTTP_Poller do
           end
 
           context "with auth enabled, a path, but no user" do
-            let(:url) { {"method" => "get", "auth" => {"pass" => "bar"}} }
+            let(:url) { {"method" => "get", "auth" => {"password" => "bar"}} }
             it "should raise an error" do
               expect { normalized }.to raise_error(LogStash::ConfigurationError)
             end
           end
           context "with auth enabled correctly" do
-            let(:auth) { {"user" => "foo", "pass" => "bar"} }
+            let(:auth) { {"user" => "foo", "password" => "bar"} }
 
             it "should raise an error" do
               expect { normalized }.not_to raise_error
             end
 
             it "should properly set the auth parameter" do
-              expect(normalized[2][:auth]).to eql({:user => auth["user"], :pass => auth["pass"]})
+              expect(normalized[2][:auth]).to eql({:user => auth["user"], :pass => auth["password"]})
             end
           end
         end
