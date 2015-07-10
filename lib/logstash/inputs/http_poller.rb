@@ -23,7 +23,7 @@ require "manticore"
 #         }
 #         auth => {
 #           user => "AzureDiamond"
-#           pass => "hunter2"
+#           password => "hunter2"
 #         }
 #       }
 #     }
@@ -89,7 +89,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       url = spec.delete(:url)
 
       # We need these strings to be keywords!
-      spec[:auth] = {user: spec[:auth]["user"], pass: spec[:auth]["pass"]} if spec[:auth]
+      spec[:auth] = {user: spec[:auth]["user"], pass: spec[:auth]["password"]} if spec[:auth]
 
       res = [method, url, spec]
     else
@@ -112,7 +112,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
         raise LogStash::ConfigurationError, "Auth was specified, but 'user' was not!"
       end
       if !spec[:auth][:pass]
-        raise LogStash::ConfigurationError, "Auth was specified, but 'pass' was not!"
+        raise LogStash::ConfigurationError, "Auth was specified, but 'password' was not!"
       end
     end
 
@@ -136,6 +136,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     # Some exceptions are only returned here! There is no callback,
     # for example, if there is a bad port number.
     # https://github.com/cheald/manticore/issues/22
+    # This issue is now fixed, but we'll leave this code in for older versions
+    # of manticore. Once the plugin ecosystem is more updated we can kill this.
     client.execute!.each_with_index do |resp, i|
       if resp.is_a?(java.lang.Exception) || resp.is_a?(StandardError)
         name = @requests.keys[i]
@@ -152,8 +154,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     @logger.debug? && @logger.debug("Fetching URL", :name => name, :url => request)
     started = Time.now
 
-    method, request_opts = request
-    client.async.send(method, request_opts).
+    method, *request_opts = request
+    client.async.send(method, *request_opts).
       on_success {|response| handle_success(queue, name, request, response, Time.now - started)}.
       on_failure {|exception|
       handle_failure(queue, name, request, exception, Time.now - started)
