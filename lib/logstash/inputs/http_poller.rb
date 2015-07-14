@@ -56,6 +56,9 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # How often  (in seconds) the urls will be called
   config :interval, :validate => :number, :required => true
 
+  # Define the target field for placing the received data. If this setting is omitted, the data will be stored at the root (top level) of the event.
+  config :target, :validate => :string
+
   # If you'd like to work with the request/response metadata
   # Set this value to the name of the field you'd like to store a nested
   # hash of metadata.
@@ -132,21 +135,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       request_async(queue, name, request)
     end
 
-    # TODO: Remove this once our patch to manticore is accepted. The real callback should work
-    # Some exceptions are only returned here! There is no callback,
-    # for example, if there is a bad port number.
-    # https://github.com/cheald/manticore/issues/22
-    # This issue is now fixed, but we'll leave this code in for older versions
-    # of manticore. Once the plugin ecosystem is more updated we can kill this.
-    client.execute!.each_with_index do |resp, i|
-      if resp.is_a?(java.lang.Exception) || resp.is_a?(StandardError)
-        name = @requests.keys[i]
-        request = @requests[name]
-        # We can't report the time here because this is as slow as the slowest request
-        # This is all temporary code anyway
-        handle_failure(queue, name, request, resp, nil)
-      end
-    end
+    client.execute!
   end
 
   private
@@ -165,7 +154,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def handle_success(queue, name, request, response, execution_time)
     @codec.decode(response.body) do |decoded|
-      handle_decoded_event(queue, name, request, response, decoded, execution_time)
+      event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
+      handle_decoded_event(queue, name, request, response, event, execution_time)
     end
   end
 
@@ -184,6 +174,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   end
 
   private
+  # Beware, on old versions of manticore some uncommon failures are not handled
   def handle_failure(queue, name, request, exception, execution_time)
     event = LogStash::Event.new
     apply_metadata(event, name, request)
@@ -196,14 +187,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       "url" => @urls[name], # We want the exact parameter they passed in
       "name" => name,
       "error" => exception.to_s,
+      "backtrace" => exception.backtrace,
       "runtime_seconds" => execution_time
    }
 
     queue << event
   rescue StandardError, java.lang.Exception => e
       @logger.error? && @logger.error("Cannot read URL or send the error as an event!",
-                                      :exception => exception,
-                                      :exception_message => exception.message,
+                                      :exception => e,
+                                      :exception_message => e.message,
+                                      :exception_backtrace => e.backtrace,
                                       :name => name,
                                       :url => request
       )
