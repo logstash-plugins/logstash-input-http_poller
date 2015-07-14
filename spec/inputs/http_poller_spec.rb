@@ -209,7 +209,6 @@ describe LogStash::Inputs::HTTP_Poller do
       end
     end
 
-
     describe "a valid request and decoded response" do
       let(:payload) { {"a" => 2, "hello" => ["a", "b", "c"]} }
       let(:opts) { default_opts }
@@ -280,15 +279,18 @@ describe LogStash::Inputs::HTTP_Poller do
           expect(event.to_hash).to include(payload)
         end
       end
+
+      context "with a specified target" do
+        let(:target) { "mytarget" }
+        let(:opts) { default_opts.merge("target" => target) }
+
+        it "should store the event info in the target" do
+          # When events go through the pipeline they are java-ified
+          # this normalizes the payload to java types
+          payload_normalized = LogStash::Json.load(LogStash::Json.dump(payload))
+          expect(event[target]).to include(payload_normalized)
+        end
+      end
     end
   end
-
-
-
-
-
-
-
-
-
 end
