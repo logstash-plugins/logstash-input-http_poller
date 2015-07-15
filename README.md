@@ -1,7 +1,5 @@
 # Logstash HTTP input plugin
 
-## This plugin is a WIP! Expect things to break!
-
 This plugin is based off [logstash-input-rest](https://github.com/maximede/logstash-input-rest) by @maximede.
 
 This [Logstash](https://github.com/elasticsearch/logstash) input plugin allows you to call an HTTP API, decode the output of it into event(s), and send them on their merry way.
@@ -12,17 +10,7 @@ It is fully free and fully open source. The license is Apache 2.0, meaning you a
 
 ## Config Example
 
-```
-input{
-	rest{
-		urls => { "test1" => "http://localhost:11100/content/management/metrics"
-		          "test2" => "http://localhost:21100/content/management/metrics"}
-		interval => 60
-		type => "something-fancy"
-	}
-}
-
-```
+For config examples see `http_poller.rb` in `lib/logstash/inputs/` in this repo.
 
 ## Documentation
 
