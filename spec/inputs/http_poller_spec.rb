@@ -39,10 +39,10 @@ describe LogStash::Inputs::HTTP_Poller do
 
     describe "#run_once" do
       it "should issue an async request for each url" do
-        default_urls.each { |name, url|
+        default_urls.each do |name, url|
           normalized_url = subject.send(:normalize_request, url)
           expect(subject).to receive(:request_async).with(queue, name, normalized_url).once
-        }
+        end
 
         subject.send(:run_once, queue) # :run_once is a private method
       end
@@ -81,12 +81,12 @@ describe LogStash::Inputs::HTTP_Poller do
           let(:spec_method) { "post" }
           let(:spec_opts) { {:"X-Bender" => "Je Suis Napoleon!"} }
 
-          let(:url) {
+          let(:url) do
             {
               "url" => spec_url,
               "method" => spec_method,
             }.merge(Hash[spec_opts.map {|k,v| [k.to_s,v]}])
-          }
+          end
 
           include_examples("a normalized request")
         end
