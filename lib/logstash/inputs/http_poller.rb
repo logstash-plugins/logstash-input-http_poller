@@ -162,6 +162,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def handle_decoded_event(queue, name, request, response, event, execution_time)
     apply_metadata(event, name, request, response, execution_time)
+    decorate(event)
     queue << event
   rescue StandardError, java.lang.Exception => e
     @logger.error? && @logger.error("Error eventifying response!",

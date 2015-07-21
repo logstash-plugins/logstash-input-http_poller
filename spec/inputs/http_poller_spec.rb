@@ -230,11 +230,16 @@ describe LogStash::Inputs::HTTP_Poller do
                              :body => LogStash::Json.dump(payload),
                              :code => code
         )
+        allow(instance).to receive(:decorate)
         instance.send(:run_once, queue)
       end
 
       it "should have a matching message" do
         expect(event.to_hash).to include(payload)
+      end
+
+      it "should decorate the event" do
+        expect(instance).to have_received(:decorate).once
       end
 
       include_examples("matching metadata")
