@@ -96,9 +96,12 @@ input {
 }
 
 filter {
-  mutate {
-    rename => {
-      _http_request_failure => http_request_failure
+  if [http_poller_metadata] {
+    # Properly set the '@host' field based on the poller's metadat
+    mutate {
+      add_field => {
+        "@host" => "%{http_poller_metadata[name]}"
+      }
     }
   }
 
@@ -116,13 +119,6 @@ filter {
       field_split => "\n"
       value_split => ":\ "
       trim => " "
-    }
-
-    # Properly set the '@host' field based on the poller's metadat
-    mutate {
-      add_field => {
-        "@host" => "%{http_poller_metadata[name]}"
-      }
     }
 
     # We can make educated guesses that strings with mixes of numbers and dots
@@ -150,12 +146,8 @@ filter {
 
     # We no longer need the message field as the CSV filter has created separate
     # fields for data.
-    # Also, add the correct host field using poller metadata
     mutate {
       remove_field => message
-      add_field => {
-        "@host" => "%{[http_poller_metadata][name]}"
-      }
     }
 
     # Same as the cast we did for apache
@@ -172,14 +164,28 @@ filter {
   }
 
   # We're going to email ourselves on error, but we want to throttle the emails
-  # so we don't get so many. This says only send one every 5 mins
-  if "http_request_failure" in [tags] {
+  # so we don't get so many. This says only send one every 10 minutes
+  if "_http_request_failure" in [tags] {
     throttle {
       key => "%{@host}-RequestFailure"
       period => 600
-      before_count => 1
-      after_count => 2
-      add_tag => "_poller_alert"
+      before_count => -1
+      after_count => 1
+      add_tag => "_throttled_poller_alert"
+    }
+
+    # Drop all throttled events
+    if "_throttled_poller_alert" in [tags] {
+      drop {}
+    }
+
+    # The SNS output plugin requires special fields to send its messages
+    # This should be fixed soon, but for now we need to set them here
+    mutate {
+      add_field => {
+        sns_subject => "%{@host} unreachable via HTTP"
+        sns_message => "%{http_request_failure}"
+      }
     }
   }
 }
@@ -193,8 +199,9 @@ output {
   # Catch throttled messages for request failures
   # If we hit one of these, send the output to stdout
   # as well as an AWS SNS Topic
-  if "_poller_alert" in [tags] {
+  if "_http_request_failure" in [tags] {
     sns {
+      codec => json
       access_key_id => "$AWS_ACCESS_KEY_ID"
       secret_access_key => "$AWS_SECRET_ACCESS_KEY"
       arn => "arn:aws:sns:us-east-1:773216979769:logstash-test-topic"
