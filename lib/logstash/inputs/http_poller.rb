@@ -31,7 +31,7 @@ require "manticore"
 #     interval => 60
 #     codec => "json"
 #     # A hash of request metadata info (timing, response headers, etc.) will be sent here
-#     metadata_target => "_http_poller_metadata"
+#     metadata_target => "http_poller_metadata"
 #   }
 # }
 #
@@ -184,8 +184,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     # This is also in the metadata, but we send it anyone because we want this
     # persisted by default, whereas metadata isn't. People don't like mysterious errors
-    event["_http_request_failure"] = {
-      "url" => @urls[name], # We want the exact parameter they passed in
+    event["http_request_failure"] = {
+      "request" => structure_request(request),
       "name" => name,
       "error" => exception.to_s,
       "backtrace" => exception.backtrace,
@@ -214,7 +214,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     m = {
         "name" => name,
         "host" => @host,
-        "url" => @urls[name]
+        "request" => structure_request(request),
       }
 
     m["runtime_seconds"] = execution_time
@@ -227,5 +227,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     end
 
     m
+  end
+
+  private
+  # Turn [method, url, spec] requests into a hash for friendlier logging / ES indexing
+  def structure_request(request)
+    method, url, spec = request
+    # Flatten everything into the 'spec' hash, also stringify any keys to normalize
+    Hash[(spec||{}).merge({
+      "method" => method.to_s,
+      "url" => url,
+    }).map {|k,v| [k.to_s,v] }]
   end
 end
