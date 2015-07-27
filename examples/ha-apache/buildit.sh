@@ -63,9 +63,9 @@ echo "Logstash Config: "
 
 cat <<EOCONFIG > logstash.conf
 input {
+  # Setup one poller for httpd, we keep these separate to tag them differently
   http_poller {
-    urls => {
-      $apache_ls_config_urls
+    urls => {$apache_ls_config_urls
      }
      tags => apache_stats
      codec => plain
@@ -73,15 +73,10 @@ input {
      interval => 1
   }
 
+  # Another poller, this time for haproxy
   http_poller {
     urls => {
-      ha_proxy_stats => {
-        url => "$ha_proxy_stats_url"
-        auth => {
-          user => "$HAPROXY_STATS_USER"
-          password => "$HAPROXY_STATS_PASS"
-        }
-      }
+      ha_proxy_stats => "$ha_proxy_stats_url"
     }
     tags => haproxy_stats
     codec => plain
@@ -89,6 +84,8 @@ input {
     interval => 1
    }
 
+    # Pull the regular Apache/HAProxy logs via docker commands
+    # This is a hack for the purposes of this example
     $ls_pipe_inputs
 
     pipe {
@@ -105,12 +102,14 @@ filter {
     }
   }
 
+  # Processed polled apache data
   if "apache_stats" in [tags] {
-    # Make sure all fields are camel cased, no spaces
+    # Apache stats uses inconsistent key names. Make sure all fields are camel cased, no spaces
     mutate {
       gsub => ["message", "^Total ", "Total"]
     }
 
+    # Parse the keys/values in the apache stats, they're separated by ": '
     kv {
       source => message
       target => apache_stats
@@ -119,32 +118,39 @@ filter {
       trim => " "
     }
 
+    # Properly set the '@host' field based on the poller's metadat
     mutate {
-      remove_field => [ "message", "apache_stats[Scoreboard]" ]
       add_field => {
         "@host" => "%{http_poller_metadata[name]}"
       }
     }
 
+    # We can make educated guesses that strings with mixes of numbers and dots
+    # are numbers, cast them for better behavior in Elasticsearch/Kibana
     ruby {
       code => "h=event['apache_stats']; h.each {|k,v| h[k] = v.to_f if v =~ /\A-?[0-9\.]+\Z/}"
     }
   }
 
+  # Process polled HAProxy data
   if "haproxy_stats" in [tags] {
     split {}
 
     # We can't read the haproxy csv header, so we define it statically
+    # This is because we're working line by line, and so have no header context
     csv {
        target => "haproxy_stats"
        columns => [ pxname,svname,qcur,qmax,scur,smax,slim,stot,bin,bout,dreq,dresp,ereq,econ,eresp,wretr,wredis,status,weight,act,bck,chkfail,chkdown,lastchg,downtime,qlimit,pid,iid,sid,throttle,lbtot,tracked,type,rate,rate_lim,rate_max,check_status,check_code,check_duration,hrsp_1xx,hrsp_2xx,hrsp_3xx,hrsp_4xx,hrsp_5xx,hrsp_other,hanafail,req_rate,req_rate_max,req_tot,cli_abrt,srv_abrt,comp_in,comp_out,comp_byp,comp_rsp,lastsess,last_chk,last_agt,qtime,ctime,rtime,ttime ]
     }
 
-    # Drop the haproxy CSV header
+    # Drop the haproxy CSV header, which always has this special value
     if [haproxy_stats][pxname] == "# pxname" {
       drop{}
     }
 
+    # We no longer need the message field as the CSV filter has created separate
+    # fields for data.
+    # Also, add the correct host field using poller metadata
     mutate {
       remove_field => message
       add_field => {
@@ -152,36 +158,40 @@ filter {
       }
     }
 
-    # cast stuff to number
+    # Same as the cast we did for apache
     ruby {
       code => "h=event['haproxy_stats']; h.each {|k,v| h[k] = v.to_f if v =~ /\A-?[0-9\.]+\Z/}"
     }
   }
 
+  # Process the regular apache logs we captured from the docker pipes
   if "apache" in [tags] {
     grok {
       match => [ "message", "%{COMMONAPACHELOG:apache}" ]
     }
   }
 
-  if "_http_request_failure" in [tags] {
-      metrics {
-        meter => [ "_http_request_failure" ]
-        add_tag => "_poller_alert"
-        flush_interval => 30
-      }
+  # We're going to email ourselves on error, but we want to throttle the emails
+  # so we don't get so many. This says only send one every 5 mins
+  if "http_request_failure" in [tags] {
+    throttle {
+      period => 600
+      before_count => 1
+      after_count => 2
+      add_tag => "_poller_alert"
+    }
   }
 }
 
 output {
-  #stdout {
-  #  codec => rubydebug
-  #}
-
+  # Store everything in the local elasticsearch
   elasticsearch {
     protocol => http
   }
 
+  # Catch throttled messages for request failures
+  # If we hit one of these, send the output to stdout
+  # as well as an AWS SNS Topic
   if "_poller_alert" in [tags] {
     sns {
       access_key_id => "$AWS_ACCESS_KEY_ID"
