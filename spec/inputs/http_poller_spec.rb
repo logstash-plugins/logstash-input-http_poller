@@ -60,7 +60,9 @@ describe LogStash::Inputs::HTTP_Poller do
 
         it "should to set additional options correctly" do
           opts = normalized.length > 2 ? normalized[2] : nil
-          expect(opts).to eql(spec_opts)
+          # At this point we'r ddealing in symbols
+          expected = Hash[LogStash::Inputs::HTTP_Poller::DEFAULT_SPEC.merge(spec_opts || {}).map {|k,v| [k.to_sym,v]} ]
+          expect(opts).to eql(expected)
         end
       end
 
@@ -161,7 +163,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
       it "should have the correct request url" do
         if url.is_a?(Hash) # If the url was specified as a complex test the whole thing
-          expect(metadata["request"]).to eql(url)
+          expect(metadata["request"]).to include(url)
         else # Otherwise we have to make some assumptions
           expect(metadata["request"]["url"]).to eql(url)
         end
