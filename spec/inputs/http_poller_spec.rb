@@ -140,8 +140,12 @@ describe LogStash::Inputs::HTTP_Poller do
         expect(metadata["name"]).to eql(name)
       end
 
-      it "should have the correct url" do
-        expect(metadata["url"]).to eql(url)
+      it "should have the correct request url" do
+        if url.is_a?(Hash) # If the url was specified as a complex test the whole thing
+          expect(metadata["request"]).to eql(url)
+        else # Otherwise we have to make some assumptions
+          expect(metadata["request"]["url"]).to eql(url)
+        end
       end
 
       it "should have the correct code" do
@@ -167,8 +171,8 @@ describe LogStash::Inputs::HTTP_Poller do
         expect(event).to be_a(LogStash::Event)
       end
 
-      it "should enqueue a message with '_http_request_failure' set" do
-        expect(event["_http_request_failure"]).to be_a(Hash)
+      it "should enqueue a message with 'http_request_failure' set" do
+        expect(event["http_request_failure"]).to be_a(Hash)
       end
 
       it "should tag the event with '_http_request_failure'" do
