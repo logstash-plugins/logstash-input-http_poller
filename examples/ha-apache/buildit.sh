@@ -175,6 +175,7 @@ filter {
   # so we don't get so many. This says only send one every 5 mins
   if "http_request_failure" in [tags] {
     throttle {
+      key => "%{@host}-RequestFailure"
       period => 600
       before_count => 1
       after_count => 2
@@ -204,7 +205,6 @@ output {
     }
   }
 }
-
 EOCONFIG
 echo Wrote logstash.conf
 
