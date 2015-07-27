@@ -90,6 +90,29 @@ describe LogStash::Inputs::HTTP_Poller do
             }.merge(Hash[spec_opts.map {|k,v| [k.to_s,v]}])
           end
 
+          it "should include the default options" do
+            expect(normalized[2]).to include(LogStash::Inputs::HTTP_Poller::DEFAULT_SPEC)
+          end
+
+          context "when overiding a spec default" do
+            let(:retries) { 3 }
+            let(:url) do
+              {
+                "url" => spec_url,
+                "method" => spec_method,
+                "automatic_retries" => retries
+              }.merge(Hash[spec_opts.map {|k,v| [k.to_s,v]}])
+            end
+
+            it "should override the default options" do
+              expect(normalized[2]).to include(:automatic_retries => retries)
+            end
+
+            it "should not include the defaults" do
+              expect(normalized[2]).not_to include(LogStash::Inputs::HTTP_Poller::DEFAULT_SPEC)
+            end
+          end
+
           include_examples("a normalized request")
         end
 
