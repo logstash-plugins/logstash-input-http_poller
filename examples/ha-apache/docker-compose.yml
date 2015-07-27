@@ -1,0 +1,38 @@
+wphaproxy:
+  image: tutum/haproxy
+  ports:
+    - 80:80
+    - 1936:1936
+  environment:
+    STATS_PORT: 1936
+    STATS_AUTH: statsguy:statspass
+  links:
+    - wordpress1:wordpress1
+    - wordpress2:wordpress2
+    - wordpress2:wordpress3
+
+wordpress1:
+  image: custom_wordpress
+  links:
+    - wpdb:mysql
+  ports:
+    - 8080:80
+
+wordpress2:
+  image: custom_wordpress
+  links:
+    - wpdb:mysql
+  ports:
+    - 8081:80
+
+wordpress3:
+  image: custom_wordpress
+  links:
+    - wpdb:mysql
+  ports:
+    - 8082:80
+
+wpdb:
+  image: mariadb
+  environment:
+    MYSQL_ROOT_PASSWORD: example

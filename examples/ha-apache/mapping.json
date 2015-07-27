@@ -1,0 +1,1937 @@
+{
+  "logstash-2015.07.22" : {
+    "mappings" : {
+      "_default_" : {
+        "dynamic_templates" : [ {
+          "message_field" : {
+            "mapping" : {
+              "index" : "analyzed",
+              "omit_norms" : true,
+              "type" : "string"
+            },
+            "match" : "message",
+            "match_mapping_type" : "string"
+          }
+        }, {
+          "string_fields" : {
+            "mapping" : {
+              "index" : "analyzed",
+              "omit_norms" : true,
+              "type" : "string",
+              "fields" : {
+                "raw" : {
+                  "ignore_above" : 256,
+                  "index" : "not_analyzed",
+                  "type" : "string"
+                }
+              }
+            },
+            "match" : "*",
+            "match_mapping_type" : "string"
+          }
+        } ],
+        "_all" : {
+          "enabled" : true,
+          "omit_norms" : true
+        },
+        "properties" : {
+          "@version" : {
+            "type" : "string",
+            "index" : "not_analyzed"
+          },
+          "geoip" : {
+            "dynamic" : "true",
+            "properties" : {
+              "location" : {
+                "type" : "geo_point"
+              }
+            }
+          }
+        }
+      },
+      "logs" : {
+        "dynamic_templates" : [ {
+          "message_field" : {
+            "mapping" : {
+              "index" : "analyzed",
+              "omit_norms" : true,
+              "type" : "string"
+            },
+            "match" : "message",
+            "match_mapping_type" : "string"
+          }
+        }, {
+          "string_fields" : {
+            "mapping" : {
+              "index" : "analyzed",
+              "omit_norms" : true,
+              "type" : "string",
+              "fields" : {
+                "raw" : {
+                  "ignore_above" : 256,
+                  "index" : "not_analyzed",
+                  "type" : "string"
+                }
+              }
+            },
+            "match" : "*",
+            "match_mapping_type" : "string"
+          }
+        } ],
+        "_all" : {
+          "enabled" : true,
+          "omit_norms" : true
+        },
+        "properties" : {
+          "@host" : {
+            "type" : "string",
+            "norms" : {
+              "enabled" : false
+            },
+            "fields" : {
+              "raw" : {
+                "type" : "string",
+                "index" : "not_analyzed",
+                "ignore_above" : 256
+              }
+            }
+          },
+          "@timestamp" : {
+            "type" : "date",
+            "format" : "dateOptionalTime"
+          },
+          "@version" : {
+            "type" : "string",
+            "index" : "not_analyzed"
+          },
+          "_http_poller_metadata" : {
+            "properties" : {
+              "@host" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "apache_stats" : {
+                "properties" : {
+                  "BusyWorkers" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "BytesPerReq" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "BytesPerSec" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "CPUChildrenSystem" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "CPUChildrenUser" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "CPULoad" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "CPUSystem" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "CPUUser" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ConnsAsyncClosing" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ConnsAsyncKeepAlive" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ConnsAsyncWriting" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ConnsTotal" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "CurrentTime" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "IdleWorkers" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "Load1" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "Load15" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "Load5" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ParentServerConfigGeneration" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ParentServerMPMGeneration" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ReqPerSec" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "RestartTime" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "Server" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ServerMPM" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ServerUptime" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ServerUptimeSeconds" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "ServerVersion" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "Total" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "Uptime" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  }
+                }
+              },
+              "code" : {
+                "type" : "long"
+              },
+              "host" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "name" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "response_headers" : {
+                "properties" : {
+                  "cache-control" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "connection" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "content-length" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "content-type" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "date" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "keep-alive" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "server" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "transfer-encoding" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  }
+                }
+              },
+              "response_message" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "runtime_seconds" : {
+                "type" : "double"
+              },
+              "tags" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "times_retried" : {
+                "type" : "long"
+              },
+              "url" : {
+                "properties" : {
+                  "auth" : {
+                    "properties" : {
+                      "password" : {
+                        "type" : "string",
+                        "norms" : {
+                          "enabled" : false
+                        },
+                        "fields" : {
+                          "raw" : {
+                            "type" : "string",
+                            "index" : "not_analyzed",
+                            "ignore_above" : 256
+                          }
+                        }
+                      },
+                      "user" : {
+                        "type" : "string",
+                        "norms" : {
+                          "enabled" : false
+                        },
+                        "fields" : {
+                          "raw" : {
+                            "type" : "string",
+                            "index" : "not_analyzed",
+                            "ignore_above" : 256
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "code" : {
+                    "type" : "long"
+                  },
+                  "response_headers" : {
+                    "properties" : {
+                      "connection" : {
+                        "type" : "string",
+                        "norms" : {
+                          "enabled" : false
+                        },
+                        "fields" : {
+                          "raw" : {
+                            "type" : "string",
+                            "index" : "not_analyzed",
+                            "ignore_above" : 256
+                          }
+                        }
+                      },
+                      "content-length" : {
+                        "type" : "string",
+                        "norms" : {
+                          "enabled" : false
+                        },
+                        "fields" : {
+                          "raw" : {
+                            "type" : "string",
+                            "index" : "not_analyzed",
+                            "ignore_above" : 256
+                          }
+                        }
+                      },
+                      "content-type" : {
+                        "type" : "string",
+                        "norms" : {
+                          "enabled" : false
+                        },
+                        "fields" : {
+                          "raw" : {
+                            "type" : "string",
+                            "index" : "not_analyzed",
+                            "ignore_above" : 256
+                          }
+                        }
+                      },
+                      "date" : {
+                        "type" : "string",
+                        "norms" : {
+                          "enabled" : false
+                        },
+                        "fields" : {
+                          "raw" : {
+                            "type" : "string",
+                            "index" : "not_analyzed",
+                            "ignore_above" : 256
+                          }
+                        }
+                      },
+                      "keep-alive" : {
+                        "type" : "string",
+                        "norms" : {
+                          "enabled" : false
+                        },
+                        "fields" : {
+                          "raw" : {
+                            "type" : "string",
+                            "index" : "not_analyzed",
+                            "ignore_above" : 256
+                          }
+                        }
+                      },
+                      "server" : {
+                        "type" : "string",
+                        "norms" : {
+                          "enabled" : false
+                        },
+                        "fields" : {
+                          "raw" : {
+                            "type" : "string",
+                            "index" : "not_analyzed",
+                            "ignore_above" : 256
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "response_message" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  },
+                  "runtime_seconds" : {
+                    "type" : "double"
+                  },
+                  "times_retried" : {
+                    "type" : "long"
+                  },
+                  "url" : {
+                    "type" : "string",
+                    "norms" : {
+                      "enabled" : false
+                    },
+                    "fields" : {
+                      "raw" : {
+                        "type" : "string",
+                        "index" : "not_analyzed",
+                        "ignore_above" : 256
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "apache_stats" : {
+            "properties" : {
+              "BusyWorkers" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "BytesPerReq" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "BytesPerSec" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "CPUChildrenSystem" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "CPUChildrenUser" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "CPULoad" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "CPUSystem" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "CPUUser" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ConnsAsyncClosing" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ConnsAsyncKeepAlive" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ConnsAsyncWriting" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ConnsTotal" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "CurrentTime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "IdleWorkers" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "Load1" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "Load15" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "Load5" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ParentServerConfigGeneration" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ParentServerMPMGeneration" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ReqPerSec" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "RestartTime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "Server" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ServerMPM" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ServerUptime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ServerUptimeSeconds" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ServerVersion" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "Total" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "Uptime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              }
+            }
+          },
+          "geoip" : {
+            "dynamic" : "true",
+            "properties" : {
+              "location" : {
+                "type" : "geo_point"
+              }
+            }
+          },
+          "haproxy_stats" : {
+            "properties" : {
+              "act" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "bck" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "bin" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "bout" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "check_duration" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "check_status" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "chkdown" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "chkfail" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "cli_abrt" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "comp_byp" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "comp_in" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "comp_out" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "comp_rsp" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ctime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "downtime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "dreq" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "dresp" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "econ" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ereq" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "eresp" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "hanafail" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "hrsp_1xx" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "hrsp_2xx" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "hrsp_3xx" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "hrsp_4xx" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "hrsp_5xx" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "hrsp_other" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "iid" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "lastchg" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "lastsess" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "lbtot" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "pid" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "pxname" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "qcur" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "qmax" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "qtime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "rate" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "rate_lim" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "rate_max" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "req_rate" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "req_rate_max" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "req_tot" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "rtime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "scur" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "sid" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "slim" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "smax" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "srv_abrt" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "status" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "stot" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "svname" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "ttime" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "type" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "weight" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "wredis" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              },
+              "wretr" : {
+                "type" : "string",
+                "norms" : {
+                  "enabled" : false
+                },
+                "fields" : {
+                  "raw" : {
+                    "type" : "string",
+                    "index" : "not_analyzed",
+                    "ignore_above" : 256
+                  }
+                }
+              }
+            }
+          },
+          "tags" : {
+            "type" : "string",
+            "norms" : {
+              "enabled" : false
+            },
+            "fields" : {
+              "raw" : {
+                "type" : "string",
+                "index" : "not_analyzed",
+                "ignore_above" : 256
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
