@@ -130,6 +130,25 @@ describe LogStash::Inputs::HTTP_Poller do
         end
       end
     end
+
+    describe "#structure_request" do
+      it "Should turn a simple request into the expected structured request" do
+        expected = {"url" => "http://example.net", "method" => "get"}
+        expect(subject.send(:structure_request, ["get", "http://example.net"])).to eql(expected)
+      end
+
+      it "should turn a complex request into the expected structured one" do
+        headers = {
+          "X-Fry" => " Like a balloon, and... something bad happens! "
+        }
+        expected = {
+          "url" => "http://example.net",
+          "method" => "get",
+          "headers" => headers
+        }
+        expect(subject.send(:structure_request, ["get", "http://example.net", {"headers" => headers}])).to eql(expected)
+      end
+    end
   end
 
   describe "events" do
