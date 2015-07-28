@@ -18,7 +18,6 @@ require "manticore"
 #         # Supports all options supported by ruby's Manticore HTTP client
 #         method => get
 #         url => "http://localhost:9200/_cluster/health"
-#         automatic_retries => 2 # Retry the URL twice
 #         headers => {
 #           Accept => "application/json"
 #         }
@@ -44,11 +43,6 @@ require "manticore"
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
-
-  # Default client options for requests
-  DEFAULT_SPEC = {
-    :automatic_retries => 0 # By default manticore retries 3 times, make this explicit
-  }
 
   config_name "http_poller"
 
@@ -88,10 +82,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def normalize_request(url_or_spec)
     if url_or_spec.is_a?(String)
-      res = [:get, url_or_spec, DEFAULT_SPEC.clone]
+      res = [:get, url_or_spec]
     elsif url_or_spec.is_a?(Hash)
       # The client will expect keys / values
-      spec = Hash[DEFAULT_SPEC.merge(url_or_spec).map {|k,v| [k.to_sym, v] }] # symbolize keys
+      spec = Hash[url_or_spec.clone.map {|k,v| [k.to_sym, v] }] # symbolize keys
 
       # method and url aren't really part of the options, so we pull them out
       method = (spec.delete(:method) || :get).to_sym.downcase
