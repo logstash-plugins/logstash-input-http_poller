@@ -1,3 +1,6 @@
+* 1.1.2
+  - Correctly default to zero connection retries
+  - Revert old ineffective code for connection retries
 * 1.1.1
   - Default to zero connection retries
 * 1.1.0
