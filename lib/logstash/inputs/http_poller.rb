@@ -5,11 +5,16 @@ require "logstash/plugin_mixins/http_client"
 require "socket" # for Socket.gethostname
 require "manticore"
 
-# Note. This plugin is a WIP! Things will change and break!
+# This Logstash input plugin allows you to call an HTTP API, decode the output of it into event(s), and
+# send them on their merry way. The idea behind this plugins came from a need to read springboot
+# metrics endpoint, instead of configuring jmx to monitor my java application memory/gc/ etc.
 #
-# Reads from a list of urls and decodes the body of the response with a codec
+# ==== Example
+# Reads from a list of urls and decodes the body of the response with a codec.
 # The config should look like this:
 #
+# [source,ruby]
+# ----------------------------------
 # input {
 #   http_poller {
 #     urls => {
@@ -40,6 +45,7 @@ require "manticore"
 #     codec => rubydebug
 #   }
 # }
+# ----------------------------------
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
@@ -48,18 +54,17 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   default :codec, "json"
 
-  # A Hash of urls in this format : "name" => "url"
+  # A Hash of urls in this format : `"name" => "url"`.
   # The name and the url will be passed in the outputed event
-  #
   config :urls, :validate => :hash, :required => true
 
-  # How often  (in seconds) the urls will be called
+  # How often (in seconds) the urls will be called
   config :interval, :validate => :number, :required => true
 
   # Define the target field for placing the received data. If this setting is omitted, the data will be stored at the root (top level) of the event.
   config :target, :validate => :string
 
-  # If you'd like to work with the request/response metadata
+  # If you'd like to work with the request/response metadata.
   # Set this value to the name of the field you'd like to store a nested
   # hash of metadata.
   config :metadata_target, :validate => :string, :default => '@metadata'
