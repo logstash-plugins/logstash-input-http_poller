@@ -2,7 +2,7 @@
 
 This plugin is based off [logstash-input-rest](https://github.com/maximede/logstash-input-rest) by @maximede.
 
-This [Logstash](https://github.com/elasticsearch/logstash) input plugin allows you to call an HTTP API, decode the output of it into event(s), and send them on their merry way.
+This [Logstash](https://github.com/elastic/logstash) input plugin allows you to call an HTTP API, decode the output of it into event(s), and send them on their merry way.
 
 The idea behind this plugins came from a need to read springboot metrics endpoint, instead of configuring jmx to monitor my java application memory / gc/ etc.
 
@@ -14,10 +14,10 @@ For config examples see `http_poller.rb` in `lib/logstash/inputs/` in this repo.
 
 ## Documentation
 
-Logstash provides infrastructure to automatically generate documentation for this plugin. We use the asciidoc format to write documentation so any comments in the source code will be first converted into asciidoc and then into html. All plugin documentation are placed under one [central location](http://www.elasticsearch.org/guide/en/logstash/current/).
+Logstash provides infrastructure to automatically generate documentation for this plugin. We use the asciidoc format to write documentation so any comments in the source code will be first converted into asciidoc and then into html. All plugin documentation are placed under one [central location](http://www.elastic.co/guide/en/logstash/current/).
 
 - For formatting code or config example, you can use the asciidoc `[source,ruby]` directive
-- For more asciidoc formatting tips, see the excellent reference here https://github.com/elasticsearch/docs#asciidoc-guide
+- For more asciidoc formatting tips, see the excellent reference here https://github.com/elastic/docs#asciidoc-guide
 
 ## Need Help?
 
@@ -91,4 +91,4 @@ Programming is not a required skill. Whatever you've seen about open source and 
 
 It is more important to the community that you are able to contribute.
 
-For more information about contributing, see the [CONTRIBUTING](https://github.com/elasticsearch/logstash/blob/master/CONTRIBUTING.md) file.
+For more information about contributing, see the [CONTRIBUTING](https://github.com/elastic/logstash/blob/master/CONTRIBUTING.md) file.
