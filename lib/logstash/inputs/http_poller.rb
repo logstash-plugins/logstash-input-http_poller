@@ -79,6 +79,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     setup_requests!
   end
 
+  def stop
+    Stud.stop!(@interval_thread) if @interval_thread
+  end
+
   private
   def setup_requests!
     @requests = Hash[@urls.map {|name, url| [name, normalize_request(url)] }]
@@ -129,6 +133,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   public
   def run(queue)
+    @interval_thread = Thread.current
     Stud.interval(@interval) do
       run_once(queue)
     end

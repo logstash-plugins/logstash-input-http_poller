@@ -321,4 +321,9 @@ describe LogStash::Inputs::HTTP_Poller do
       end
     end
   end
+
+  describe "stopping" do
+    let(:config) { default_opts }
+    it_behaves_like "an interruptible input plugin"
+  end
 end
