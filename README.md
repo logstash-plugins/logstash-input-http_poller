@@ -1,5 +1,7 @@
 # Logstash HTTP input plugin
 
+[![Build Status](http://build-eu-00.elastic.co/view/LS%20Other/job/logstash-plugin-input-http_poller-unit/badge/icon)](http://build-eu-00.elastic.co/view/LS%20Other/job/logstash-plugin-input-http_poller-unit/)
+
 This plugin is based off [logstash-input-rest](https://github.com/maximede/logstash-input-rest) by @maximede.
 
 This [Logstash](https://github.com/elastic/logstash) input plugin allows you to call an HTTP API, decode the output of it into event(s), and send them on their merry way.
