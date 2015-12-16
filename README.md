@@ -1,6 +1,6 @@
 # Logstash HTTP input plugin
 
-[![Build Status](http://build-eu-00.elastic.co/view/LS%20Other/job/logstash-plugin-input-http_poller-unit/badge/icon)](http://build-eu-00.elastic.co/view/LS%20Other/job/logstash-plugin-input-http_poller-unit/)
+[![Build Status](https://travis-ci.org/logstash-plugins/logstash-input-http_poller.svg?branch=master)](https://travis-ci.org/logstash-plugins/logstash-input-http_poller)
 
 This plugin is based off [logstash-input-rest](https://github.com/maximede/logstash-input-rest) by @maximede.
 
