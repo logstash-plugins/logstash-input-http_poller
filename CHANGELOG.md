@@ -1,3 +1,6 @@
+## 2.0.2
+ - Bump http_client mixin to use better stale check for keepalives
+
 ## 2.0.1
  - Bump http_client mixin to default to 1 retry for idempotent actions
 
