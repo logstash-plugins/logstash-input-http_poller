@@ -1,3 +1,5 @@
+# 2.0.4
+  - New dependency requirements for logstash-core for the 5.0 release
 ## 2.0.2
  - Bump http_client mixin to use better stale check for keepalives
 
