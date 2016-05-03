@@ -153,7 +153,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
   describe "events" do
     shared_examples("matching metadata") {
-      let(:metadata) { event[metadata_target] }
+      let(:metadata) { event.get(metadata_target) }
 
       it "should have the correct name" do
         expect(metadata["name"]).to eql(name)
@@ -191,11 +191,11 @@ describe LogStash::Inputs::HTTP_Poller do
       end
 
       it "should enqueue a message with 'http_request_failure' set" do
-        expect(event["http_request_failure"]).to be_a(Hash)
+        expect(event.get("http_request_failure")).to be_a(Hash)
       end
 
       it "should tag the event with '_http_request_failure'" do
-        expect(event["tags"]).to include('_http_request_failure')
+        expect(event.get("tags")).to include('_http_request_failure')
       end
 
       it "should invoke handle failure exactly once" do
@@ -276,7 +276,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
         it "should not have any metadata on the event" do
           instance.send(:run_once, queue)
-          expect(event[metadata_target]).to be_nil
+          expect(event.get(metadata_target)).to be_nil
         end
       end
 
@@ -316,7 +316,7 @@ describe LogStash::Inputs::HTTP_Poller do
           # When events go through the pipeline they are java-ified
           # this normalizes the payload to java types
           payload_normalized = LogStash::Json.load(LogStash::Json.dump(payload))
-          expect(event[target]).to include(payload_normalized)
+          expect(event.get(target)).to include(payload_normalized)
         end
       end
     end

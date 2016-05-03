@@ -194,13 +194,13 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     # This is also in the metadata, but we send it anyone because we want this
     # persisted by default, whereas metadata isn't. People don't like mysterious errors
-    event["http_request_failure"] = {
+    event.set("http_request_failure", {
       "request" => structure_request(request),
       "name" => name,
       "error" => exception.to_s,
       "backtrace" => exception.backtrace,
       "runtime_seconds" => execution_time
-   }
+   })
 
     queue << event
   rescue StandardError, java.lang.Exception => e
@@ -216,7 +216,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def apply_metadata(event, name, request, response=nil, execution_time=nil)
     return unless @metadata_target
-    event[@metadata_target] = event_metadata(name, request, response, execution_time)
+    event.set(@metadata_target, event_metadata(name, request, response, execution_time))
   end
 
   private
