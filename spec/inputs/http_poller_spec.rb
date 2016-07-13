@@ -1,11 +1,14 @@
 require "logstash/devutils/rspec/spec_helper"
 require 'logstash/inputs/http_poller'
 require 'flores/random'
+require "timecop"
 
 describe LogStash::Inputs::HTTP_Poller do
   let(:metadata_target) { "_http_poller_metadata" }
   let(:queue) { Queue.new }
-  let(:default_interval) { 5 }
+  let(:default_schedule) {
+    { "cron" => "* * * * * UTC" }
+  }
   let(:default_name) { "url1 " }
   let(:default_url) { "http://localhost:1827" }
   let(:default_urls) {
@@ -15,7 +18,7 @@ describe LogStash::Inputs::HTTP_Poller do
   }
   let(:default_opts) {
     {
-      "interval" => default_interval,
+      "schedule" => default_schedule,
       "urls" => default_urls,
       "codec" => "json",
       "metadata_target" => metadata_target
@@ -31,9 +34,13 @@ describe LogStash::Inputs::HTTP_Poller do
     end
 
     describe "#run" do
-      it "should run at the specified interval" do
-        expect(Stud).to receive(:interval).with(default_interval).once
-        subject.run(double("queue"))
+      it "should setup a scheduler" do
+        runner = Thread.new do
+          subject.run(double("queue"))
+          expect(subject.instance_variable_get("@scheduler")).to be_a_kind_of(Rufus::Scheduler)
+        end
+        runner.kill
+        runner.join
       end
     end
 
@@ -147,6 +154,163 @@ describe LogStash::Inputs::HTTP_Poller do
           "headers" => headers
         }
         expect(subject.send(:structure_request, ["get", "http://example.net", {"headers" => headers}])).to eql(expected)
+      end
+    end
+  end
+
+  describe "scheduler configuration" do
+    context "given an interval" do
+      let(:opts) {
+        {
+          "interval" => 2,
+          "urls" => default_urls,
+          "codec" => "json",
+          "metadata_target" => metadata_target
+        }
+      }
+      it "should run once in each interval" do
+        instance = klass.new(opts)
+        instance.register
+        queue = Queue.new
+        runner = Thread.new do
+          instance.run(queue)
+        end
+        #T       0123456
+        #events  x x x x
+        #expects 3 events at T=5
+        sleep 5
+        instance.stop
+        runner.kill
+        runner.join
+        expect(queue.size).to eq(3)
+      end
+    end
+
+    context "given both interval and schedule options" do
+      let(:opts) {
+        {
+          "interval" => 1,
+          "schedule" => { "every" => "5s" },
+          "urls" => default_urls,
+          "codec" => "json",
+          "metadata_target" => metadata_target
+        }
+      }
+      it "should raise ConfigurationError" do
+        instance = klass.new(opts)
+        instance.register
+        queue = Queue.new
+        runner = Thread.new do
+          expect{instance.run(queue)}.to raise_error(LogStash::ConfigurationError)
+        end
+        instance.stop
+        runner.kill
+        runner.join
+      end
+    end
+
+    context "given 'cron' expression" do
+      let(:opts) {
+        {
+          "schedule" => { "cron" => "* * * * * UTC" },
+          "urls" => default_urls,
+          "codec" => "json",
+          "metadata_target" => metadata_target
+        }
+      }
+      it "should run at the schedule" do
+        instance = klass.new(opts)
+        instance.register
+        Timecop.travel(Time.new(2000,1,1,0,0,0,'+00:00'))
+        Timecop.scale(60)
+        queue = Queue.new
+        runner = Thread.new do
+          instance.run(queue)
+        end
+        sleep 3
+        instance.stop
+        runner.kill
+        runner.join
+        expect(queue.size).to eq(2)
+        Timecop.return
+      end
+    end
+
+    context "given 'at' expression" do
+      let(:opts) {
+        {
+          "schedule" => { "at" => "2000-01-01 00:05:00 +0000"},
+          "urls" => default_urls,
+          "codec" => "json",
+          "metadata_target" => metadata_target
+        }
+      }
+      it "should run at the schedule" do
+        instance = klass.new(opts)
+        instance.register
+        Timecop.travel(Time.new(2000,1,1,0,0,0,'+00:00'))
+        Timecop.scale(60 * 5)
+        queue = Queue.new
+        runner = Thread.new do
+          instance.run(queue)
+        end
+        sleep 2
+        instance.stop
+        runner.kill
+        runner.join
+        expect(queue.size).to eq(1)
+        Timecop.return
+      end
+    end
+
+    context "given 'every' expression" do
+      let(:opts) {
+        {
+          "schedule" => { "every" => "2s"},
+          "urls" => default_urls,
+          "codec" => "json",
+          "metadata_target" => metadata_target
+        }
+      }
+      it "should run at the schedule" do
+        instance = klass.new(opts)
+        instance.register
+        queue = Queue.new
+        runner = Thread.new do
+          instance.run(queue)
+        end
+        #T       0123456
+        #events  x x x x
+        #expects 3 events at T=5
+        sleep 5
+        instance.stop
+        runner.kill
+        runner.join
+        expect(queue.size).to eq(3)
+      end
+    end
+
+    context "given 'in' expression" do
+      let(:opts) {
+        {
+          "schedule" => { "in" => "2s"},
+          "urls" => default_urls,
+          "codec" => "json",
+          "metadata_target" => metadata_target
+        }
+      }
+      it "should run at the schedule" do
+        instance = klass.new(opts)
+        instance.register
+        queue = Queue.new
+        runner = Thread.new do
+          instance.run(queue)
+        end
+        sleep 3
+        instance.stop
+        runner.kill
+        runner.join
+        expect(queue.size).to eq(1)
       end
     end
   end
@@ -292,7 +456,9 @@ describe LogStash::Inputs::HTTP_Poller do
         }
         let(:opts) {
           {
-            "interval" => default_interval,
+            "schedule" => {
+              "cron" => "* * * * * UTC"
+              },
             "urls" => {
               default_name => url
             },
