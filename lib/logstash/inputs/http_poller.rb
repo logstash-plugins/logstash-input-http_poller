@@ -46,6 +46,32 @@ require "manticore"
 #   }
 # }
 # ----------------------------------
+#
+# Using the HTTP poller with custom a custom CA or self signed cert.
+#
+# If you have a self signed cert you will need to convert your server's certificate to a valid# `.jks` or `.p12` file. An easy way to do it is to run the following one-liner, substituting your server's URL for the placeholder `MYURL` and `MYPORT`.
+#
+#....
+# openssl s_client -showcerts -connect MYURL:MYPORT </dev/null 2>/dev/null|openssl x509 -outform PEM > downloaded_cert.pem; keytool -import -alias test -file downloaded_cert.pem -keystore downloaded_truststore.jks
+#....
+#
+# The above snippet will create two files `downloaded_cert.pem` and `downloaded_truststore.jks`. You will be prompted to set a password for the `jks` file during this process. To configure logstash use a config like the one that follows.
+#
+#
+# [source,ruby]
+# ----------------------------------
+#input {
+#  http_poller {
+#    urls => {
+#      myurl => "https://myhostname:1234"
+#    }
+#    truststore => "/path/to/downloaded_truststore.jks"
+#    truststore_password => "mypassword"
+#    interval => 30
+#  }
+#}
+#
+
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
