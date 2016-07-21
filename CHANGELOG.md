@@ -1,6 +1,7 @@
+## 3.0.3
+  - Require logstash-mixin-http_client 4.0.3 which fixes error messaging around key/trust-stores when no password supplied
 ## 3.0.2
   - Relax constraint on logstash-core-plugin-api to >= 1.60 <= 2.99
-
 ## 3.0.1
   - Republish all the gems under jruby.
 ## 3.0.0
@@ -16,7 +17,7 @@
  - Bump http_client mixin to default to 1 retry for idempotent actions
 
 ## 2.0.0
- - Plugins were updated to follow the new shutdown semantic, this mainly allows Logstash to instruct input plugins to terminate gracefully, 
+ - Plugins were updated to follow the new shutdown semantic, this mainly allows Logstash to instruct input plugins to terminate gracefully,
    instead of using Thread.raise on the plugins' threads. Ref: https://github.com/elastic/logstash/pull/3895
  - Dependency on logstash-core update to 2.0
 
