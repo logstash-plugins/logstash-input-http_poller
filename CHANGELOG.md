@@ -1,15 +1,24 @@
+## 3.1.0
+ - Use rufus-scheduler for more flexible scheduling. Many thanks to [@hummingV](https://github.com/hummingV) for this contribution. ([#58](https://github.com/logstash-plugins/logstash-input-http_poller/pull/58))
+
 ## 3.0.3
   - Require logstash-mixin-http_client 4.0.3 which fixes error messaging around key/trust-stores when no password supplied
+
 ## 3.0.2
   - Relax constraint on logstash-core-plugin-api to >= 1.60 <= 2.99
+
 ## 3.0.1
   - Republish all the gems under jruby.
+
 ## 3.0.0
   - Update the plugin to the version 2.0 of the plugin api, this change is required for Logstash 5.0 compatibility. See https://github.com/elastic/logstash/issues/5141
-# 2.0.5
+
+## 2.0.5
   - Depend on logstash-core-plugin-api instead of logstash-core, removing the need to mass update plugins on major releases of logstash
-# 2.0.4
+
+## 2.0.4
   - New dependency requirements for logstash-core for the 5.0 release
+
 ## 2.0.2
  - Bump http_client mixin to use better stale check for keepalives
 
