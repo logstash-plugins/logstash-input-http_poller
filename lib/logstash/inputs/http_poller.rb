@@ -240,8 +240,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   private
   def handle_success(queue, name, request, response, execution_time)
-    @codec.decode(response.body) do |decoded|
-      event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
+    body = response.body
+    # If there is a usable response. HEAD requests are `nil` and empty get
+    # responses come up as "" which will cause the codec to not yield anything
+    if body && body.size > 0
+      @codec.decode(body) do |decoded|
+        event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
+        handle_decoded_event(queue, name, request, response, event, execution_time)
+      end
+    else
+      event = ::LogStash::Event.new
       handle_decoded_event(queue, name, request, response, event, execution_time)
     end
   end

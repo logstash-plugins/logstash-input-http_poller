@@ -1,3 +1,5 @@
+## 3.1.1
+ - Handle empty bodies correctly
 ## 3.1.0
  - Use rufus-scheduler for more flexible scheduling. Many thanks to [@hummingV](https://github.com/hummingV) for this contribution. ([#58](https://github.com/logstash-plugins/logstash-input-http_poller/pull/58))
 

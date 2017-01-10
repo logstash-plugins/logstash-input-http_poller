@@ -398,6 +398,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
     describe "a valid request and decoded response" do
       let(:payload) { {"a" => 2, "hello" => ["a", "b", "c"]} }
+      let(:response_body) { LogStash::Json.dump(payload) }
       let(:opts) { default_opts }
       let(:instance) {
         klass.new(opts)
@@ -414,7 +415,7 @@ describe LogStash::Inputs::HTTP_Poller do
         instance.register
         u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
         instance.client.stub(u,
-                             :body => LogStash::Json.dump(payload),
+                             :body => response_body,
                              :code => code
         )
         allow(instance).to receive(:decorate)
@@ -430,6 +431,14 @@ describe LogStash::Inputs::HTTP_Poller do
       end
 
       include_examples("matching metadata")
+      
+      context "with an empty body" do
+        let(:response_body) { "" }
+        it "should return an empty event" do
+          instance.send(:run_once, queue)
+          expect(event.get("[_http_poller_metadata][response_headers][content-length]")).to eql("0")
+        end
+      end
 
       context "with metadata omitted" do
         let(:opts) {
