@@ -67,7 +67,9 @@ describe LogStash::Inputs::HTTP_Poller do
 
         it "should to set additional options correctly" do
           opts = normalized.length > 2 ? normalized[2] : nil
-          expect(opts).to eql(spec_opts)
+          # At this point we'r ddealing in symbols
+          expected = Hash[LogStash::Inputs::HTTP_Poller::DEFAULT_SPEC.merge(spec_opts || {}).map {|k,v| [k.to_sym,v]} ]
+          expect(opts).to eql(expected)
         end
       end
 
@@ -93,6 +95,29 @@ describe LogStash::Inputs::HTTP_Poller do
               "url" => spec_url,
               "method" => spec_method,
             }.merge(Hash[spec_opts.map {|k,v| [k.to_s,v]}])
+          end
+
+          it "should include the default options" do
+            expect(normalized[2]).to include(LogStash::Inputs::HTTP_Poller::DEFAULT_SPEC)
+          end
+
+          context "when overiding a spec default" do
+            let(:retries) { 3 }
+            let(:url) do
+              {
+                "url" => spec_url,
+                "method" => spec_method,
+                "automatic_retries" => retries
+              }.merge(Hash[spec_opts.map {|k,v| [k.to_s,v]}])
+            end
+
+            it "should override the default options" do
+              expect(normalized[2]).to include(:automatic_retries => retries)
+            end
+
+            it "should not include the defaults" do
+              expect(normalized[2]).not_to include(LogStash::Inputs::HTTP_Poller::DEFAULT_SPEC)
+            end
           end
 
           include_examples("a normalized request")
@@ -325,7 +350,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
       it "should have the correct request url" do
         if url.is_a?(Hash) # If the url was specified as a complex test the whole thing
-          expect(metadata["request"]).to eql(url)
+          expect(metadata["request"]).to include(url)
         else # Otherwise we have to make some assumptions
           expect(metadata["request"]["url"]).to eql(url)
         end
