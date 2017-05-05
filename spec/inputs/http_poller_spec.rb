@@ -106,9 +106,7 @@ describe LogStash::Inputs::HTTP_Poller do
           end
         end
 
-        describe "auth" do
-          let(:url) { {"url" => "http://localhost", "method" => "get", "auth" => auth} }
-
+        shared_examples "auth" do
           context "with auth enabled but no pass" do
             let(:auth) { {"user" => "foo"} }
 
@@ -138,6 +136,20 @@ describe LogStash::Inputs::HTTP_Poller do
               })
             end
           end
+        end
+
+        # Legacy way of doing things, kept for backwards compat.
+        describe "auth with nested auth hash" do
+          let(:url) { {"url" => "http://localhost", "method" => "get", "auth" => auth} }
+          
+          include_examples("auth")
+        end
+
+        # The new 'right' way to do things
+        describe "auth with direct auth options" do
+          let(:url) { {"url" => "http://localhost", "method" => "get", "user" => auth["user"], "password" => auth["password"]} }
+          
+          include_examples("auth")
         end
       end
     end

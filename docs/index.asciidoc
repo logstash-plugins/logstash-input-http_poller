@@ -37,15 +37,13 @@ input {
       test2 => {
         # Supports all options supported by ruby's Manticore HTTP client
         method => get
+        user => "AzureDiamond"
+        password => "hunter2"
         url => "http://localhost:9200/_cluster/health"
         headers => {
           Accept => "application/json"
         }
-        auth => {
-          user => "AzureDiamond"
-          password => "hunter2"
-        }
-      }
+     }
     }
     request_timeout => 60
     # Supports "cron", "every", "at" and "in" schedules by rufus scheduler
@@ -96,6 +94,8 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 [cols="<,<,<",options="header",]
 |=======================================================================
 |Setting |Input type|Required
+| <<plugins-{type}s-{plugin}-user>> |<<string,string>>|no
+| <<plugins-{type}s-{plugin}-password>> |<<password,password>>|No
 | <<plugins-{type}s-{plugin}-automatic_retries>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-cacert>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-client_cert>> |a valid filesystem path|No
@@ -128,6 +128,23 @@ Also see <<plugins-{type}s-common-options>> for a list of options supported by a
 input plugins.
 
 &nbsp;
+
+[id="plugins-{type}s-{plugin}-user"]
+===== `user` 
+
+  * Value type is <<string,string>>
+  * There is no default value for this setting.
+
+Username to use with HTTP authentication for ALL requests. Note that you can also set this per-URL.
+If you set this you must also set the `password` option.
+
+[id="plugins-{type}s-{plugin}-password"]
+===== `password` 
+
+  * Value type is <<password,password>>
+  * There is no default value for this setting.
+
+Password to be used in conjunction with the username for HTTP authentication.
 
 [id="plugins-{type}s-{plugin}-automatic_retries"]
 ===== `automatic_retries` 
