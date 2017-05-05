@@ -145,8 +145,13 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       url = spec.delete(:url)
 
       # We need these strings to be keywords!
-      spec[:auth] = {user: spec[:auth]["user"], pass: spec[:auth]["password"]} if spec[:auth]
-
+      if spec[:auth]
+        spec[:auth] = {
+          user: spec[:auth]["user"], 
+          pass: spec[:auth]["password"],
+          eager: true
+        } 
+      end
       res = [method, url, spec]
     else
       raise LogStash::ConfigurationError, "Invalid URL or request spec: '#{url_or_spec}', expected a String or Hash!"

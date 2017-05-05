@@ -1,3 +1,6 @@
+## 3.2.0
+ - Use eager auth. This means the client will send any credentials in its first request
+   rather than waiting for a 401 challenge
 ## 3.1.1
  - Handle empty bodies correctly
 ## 3.1.0
