@@ -131,7 +131,11 @@ describe LogStash::Inputs::HTTP_Poller do
             end
 
             it "should properly set the auth parameter" do
-              expect(normalized[2][:auth]).to eql({:user => auth["user"], :pass => auth["password"]})
+              expect(normalized[2][:auth]).to eq({
+                :user => auth["user"], 
+                :pass => auth["password"],
+                :eager => true
+              })
             end
           end
         end
