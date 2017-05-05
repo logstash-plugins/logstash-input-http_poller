@@ -6,76 +6,6 @@ require "socket" # for Socket.gethostname
 require "manticore"
 require "rufus/scheduler"
 
-# This Logstash input plugin allows you to call an HTTP API, decode the output of it into event(s), and
-# send them on their merry way. The idea behind this plugins came from a need to read springboot
-# metrics endpoint, instead of configuring jmx to monitor my java application memory/gc/ etc.
-#
-# ==== Example
-# Reads from a list of urls and decodes the body of the response with a codec.
-# The config should look like this:
-#
-# [source,ruby]
-# ----------------------------------
-# input {
-#   http_poller {
-#     urls => {
-#       test1 => "http://localhost:9200"
-#       test2 => {
-#         # Supports all options supported by ruby's Manticore HTTP client
-#         method => get
-#         url => "http://localhost:9200/_cluster/health"
-#         headers => {
-#           Accept => "application/json"
-#         }
-#         auth => {
-#           user => "AzureDiamond"
-#           password => "hunter2"
-#         }
-#       }
-#     }
-#     request_timeout => 60
-#     # Supports "cron", "every", "at" and "in" schedules by rufus scheduler
-#     schedule => { cron => "* * * * * UTC"}
-#     codec => "json"
-#     # A hash of request metadata info (timing, response headers, etc.) will be sent here
-#     metadata_target => "http_poller_metadata"
-#   }
-# }
-#
-# output {
-#   stdout {
-#     codec => rubydebug
-#   }
-# }
-# ----------------------------------
-#
-# Using the HTTP poller with custom a custom CA or self signed cert.
-#
-# If you have a self signed cert you will need to convert your server's certificate to a valid# `.jks` or `.p12` file. An easy way to do it is to run the following one-liner, substituting your server's URL for the placeholder `MYURL` and `MYPORT`.
-#
-# [source,ruby]
-# ----------------------------------
-# openssl s_client -showcerts -connect MYURL:MYPORT </dev/null 2>/dev/null|openssl x509 -outform PEM > downloaded_cert.pem; keytool -import -alias test -file downloaded_cert.pem -keystore downloaded_truststore.jks
-# ----------------------------------
-#
-# The above snippet will create two files `downloaded_cert.pem` and `downloaded_truststore.jks`. You will be prompted to set a password for the `jks` file during this process. To configure logstash use a config like the one that follows.
-#
-#
-# [source,ruby]
-# ----------------------------------
-#input {
-#  http_poller {
-#    urls => {
-#      myurl => "https://myhostname:1234"
-#    }
-#    truststore => "/path/to/downloaded_truststore.jks"
-#    truststore_password => "mypassword"
-#    interval => 30
-#  }
-#}
-# ----------------------------------
-#
-
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
 
@@ -144,11 +74,23 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       method = (spec.delete(:method) || :get).to_sym.downcase
       url = spec.delete(:url)
 
-      # We need these strings to be keywords!
-      if spec[:auth]
+      # Manticore wants auth options that are like {:auth => {:user => u, :pass => p}}
+      # We allow that because earlier versions of this plugin documented that as the main way to
+      # to do things, but now prefer top level "user", and "password" options
+      # So, if the top level user/password are defined they are moved to the :auth key for manticore
+      # if those attributes are already in :auth they still need to be transformed to symbols
+      auth = spec[:auth]
+      user = spec.delete(:user) || (auth && auth["user"])
+      password = spec.delete(:password) || (auth && auth["password"])
+      
+      if user.nil? ^ password.nil?
+        raise LogStash::ConfigurationError, "'user' and 'password' must both be specified for input HTTP poller!"
+      end
+
+      if user && password
         spec[:auth] = {
-          user: spec[:auth]["user"], 
-          pass: spec[:auth]["password"],
+          user: user, 
+          pass: password,
           eager: true
         } 
       end
