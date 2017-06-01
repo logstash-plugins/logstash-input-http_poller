@@ -2,6 +2,8 @@ require "logstash/devutils/rspec/spec_helper"
 require 'logstash/inputs/http_poller'
 require 'flores/random'
 require "timecop"
+# Workaround for the bug reported in https://github.com/jruby/jruby/issues/4637
+require 'rspec/matchers/built_in/raise_error.rb'
 
 describe LogStash::Inputs::HTTP_Poller do
   let(:metadata_target) { "_http_poller_metadata" }
