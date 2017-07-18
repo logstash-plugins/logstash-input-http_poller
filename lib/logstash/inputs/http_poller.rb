@@ -221,6 +221,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def handle_failure(queue, name, request, exception, execution_time)
     event = LogStash::Event.new
     apply_metadata(event, name, request)
+    decorate(event)
 
     event.tag("_http_request_failure")
 
