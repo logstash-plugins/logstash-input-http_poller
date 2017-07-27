@@ -17,11 +17,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # The name and the url will be passed in the outputed event
   config :urls, :validate => :hash, :required => true
 
-  # How often (in seconds) the urls will be called
-  # DEPRECATED. Use 'schedule' option instead.
-  # If both interval and schedule options are specified, interval
-  # option takes higher precedence
-  config :interval, :validate => :number, :deprecated => true
+  config :interval, :validate => :number, :obsolete => "The interval options is obsolete. Use schedule instead"
 
   # Schedule of when to periodically poll from the urls
   # Format: A hash with
@@ -31,7 +27,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   #   a) { "every" => "1h" }
   #   b) { "cron" => "* * * * * UTC" }
   # See: rufus/scheduler for details about different schedule options and value string format
-  config :schedule, :validate => :hash
+  config :schedule, :validate => :hash, :required => true
 
   # Define the target field for placing the received data. If this setting is omitted, the data will be stored at the root (top level) of the event.
   config :target, :validate => :string
@@ -47,7 +43,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
     @logger.info("Registering http_poller Input", :type => @type,
-                 :urls => @urls, :interval => @interval, :schedule => @schedule, :timeout => @timeout)
+                 :urls => @urls, :schedule => @schedule, :timeout => @timeout)
 
     setup_requests!
   end
@@ -124,28 +120,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   public
   def run(queue)
-    #interval or schedule must be provided. Must be exclusively either one. Not neither. Not both.
-    raise LogStash::ConfigurationError, "Invalid config. Neither interval nor schedule was specified." \
-      unless @interval ||  @schedule
-    raise LogStash::ConfigurationError, "Invalid config. Specify only interval or schedule. Not both." \
-      if @interval && @schedule
-
-    if @interval
-      setup_interval(queue)
-    elsif @schedule
-      setup_schedule(queue)
-    else
-      #should not reach here
-      raise LogStash::ConfigurationError, "Invalid config. Neither interval nor schedule was specified."
-    end
-  end
-
-  private
-  def setup_interval(queue)
-    @interval_thread = Thread.current
-    Stud.interval(@interval) do
-      run_once(queue)
-    end
+    setup_schedule(queue)
   end
 
   def setup_schedule(queue)

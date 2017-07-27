@@ -177,56 +177,6 @@ describe LogStash::Inputs::HTTP_Poller do
   end
 
   describe "scheduler configuration" do
-    context "given an interval" do
-      let(:opts) {
-        {
-          "interval" => 2,
-          "urls" => default_urls,
-          "codec" => "json",
-          "metadata_target" => metadata_target
-        }
-      }
-      it "should run once in each interval" do
-        instance = klass.new(opts)
-        instance.register
-        queue = Queue.new
-        runner = Thread.new do
-          instance.run(queue)
-        end
-        #T       0123456
-        #events  x x x x
-        #expects 3 events at T=5
-        sleep 5
-        instance.stop
-        runner.kill
-        runner.join
-        expect(queue.size).to eq(3)
-      end
-    end
-
-    context "given both interval and schedule options" do
-      let(:opts) {
-        {
-          "interval" => 1,
-          "schedule" => { "every" => "5s" },
-          "urls" => default_urls,
-          "codec" => "json",
-          "metadata_target" => metadata_target
-        }
-      }
-      it "should raise ConfigurationError" do
-        instance = klass.new(opts)
-        instance.register
-        queue = Queue.new
-        runner = Thread.new do
-          expect{instance.run(queue)}.to raise_error(LogStash::ConfigurationError)
-        end
-        instance.stop
-        runner.kill
-        runner.join
-      end
-    end
-
     context "given 'cron' expression" do
       let(:opts) {
         {
