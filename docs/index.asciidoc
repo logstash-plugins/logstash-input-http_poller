@@ -81,7 +81,7 @@ The above snippet will create two files `downloaded_cert.pem` and `downloaded_tr
    }
    truststore => "/path/to/downloaded_truststore.jks"
    truststore_password => "mypassword"
-   interval => 30
+   schedule => { cron => "* * * * * UTC"}
  }
 ----------------------------------
 
@@ -204,18 +204,6 @@ across requests as a normal web browser would. Enabled by default
   * Default value is `true`
 
 Should redirects be followed? Defaults to `true`
-
-[id="plugins-{type}s-{plugin}-interval"]
-===== `interval`  (DEPRECATED)
-
-  * DEPRECATED WARNING: This configuration item is deprecated and may not be available in future versions.
-  * Value type is <<number,number>>
-  * There is no default value for this setting.
-
-How often (in seconds) the urls will be called
-DEPRECATED. Use 'schedule' option instead.
-If both interval and schedule options are specified, interval
-option takes higher precedence
 
 [id="plugins-{type}s-{plugin}-keepalive"]
 ===== `keepalive` 
