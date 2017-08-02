@@ -1,5 +1,6 @@
 ## 4.0.0
  - Mark deprecated field `interval` as obsolete
+ - bump dependency in logstash-mixin-http_client
 
 ## 3.3.0
  - Add top level user/password options that apply to all URLs by default.
