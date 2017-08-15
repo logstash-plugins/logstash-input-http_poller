@@ -1,3 +1,6 @@
+## 4.0.1
+  - Fix some documentation issues
+
 ## 4.0.0
  - Mark deprecated field `interval` as obsolete
  - bump dependency in logstash-mixin-http_client
