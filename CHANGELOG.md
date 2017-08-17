@@ -1,3 +1,6 @@
+## 3.3.2
+ - Documentation fixes
+
 ## 3.3.0
  - Add top level user/password options that apply to all URLs by default.
  - Make user/password configurable per-URL nested at the top level without the extra auth hash
