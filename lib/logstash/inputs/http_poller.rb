@@ -42,8 +42,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
-    @logger.info("Registering http_poller Input", :type => @type,
-                 :urls => @urls, :schedule => @schedule, :timeout => @timeout)
+    @logger.info("Registering http_poller Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
 
     setup_requests!
   end
@@ -215,9 +214,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
                                       :exception => e,
                                       :exception_message => e.message,
                                       :exception_backtrace => e.backtrace,
+                                      :name => name)
+
+      # If we are running in debug mode we can display more information about the
+      # specific request which could give more details about the connection.
+      @logger.debug? && @logger.debug("Cannot read URL or send the error as an event!",
+                                      :exception => e,
+                                      :exception_message => e.message,
+                                      :exception_backtrace => e.backtrace,
                                       :name => name,
-                                      :url => request
-      )
+                                      :url => request)
   end
 
   private
