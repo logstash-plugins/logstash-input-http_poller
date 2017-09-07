@@ -1,3 +1,6 @@
+## 4.0.2
+  - Don't bleed URLs credentials on startup and on exception #82
+
 ## 4.0.1
   - Fix some documentation issues
 
