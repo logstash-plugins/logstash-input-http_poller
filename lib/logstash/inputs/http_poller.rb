@@ -46,8 +46,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
-    @logger.info("Registering http_poller Input", :type => @type,
-                 :urls => @urls, :interval => @interval, :schedule => @schedule, :timeout => @timeout)
+    @logger.info("Registering http_poller Input", :type => @type, :interval => @interval, :schedule => @schedule, :timeout => @timeout)
 
     setup_requests!
   end
@@ -243,6 +242,13 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
                                       :name => name,
                                       :url => request
       )
+
+      @logger.debug? && @logger.debug("Cannot read URL or send the error as an event!",
+                                      :exception => e,
+                                      :exception_message => e.message,
+                                      :exception_backtrace => e.backtrace,
+                                      :name => name,
+                                      :url => request)
   end
 
   private
