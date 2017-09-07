@@ -1,3 +1,6 @@
+## 3.3.3
+ - Don't bleed URls credentials on startup or on exception #82
+
 ## 3.3.2
  - Documentation fixes
 

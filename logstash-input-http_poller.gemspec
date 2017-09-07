@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'logstash-input-http_poller'
-  s.version         = '3.3.2'
+  s.version         = '3.3.3'
   s.licenses    = ['Apache License (2.0)']
   s.summary     = "Poll HTTP endpoints with Logstash."
   s.description     = "This gem is a Logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/logstash-plugin install gemname. This gem is not a stand-alone program"
