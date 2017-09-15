@@ -1,3 +1,6 @@
+## 4.0.3
+  - Docs: Remove row in overview table to fix build error
+  
 ## 4.0.2
   - Don't bleed URLs credentials on startup and on exception #82
 
