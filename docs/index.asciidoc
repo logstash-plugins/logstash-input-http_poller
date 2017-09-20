@@ -330,15 +330,6 @@ See: rufus/scheduler for details about different schedule options and value stri
 
 Timeout (in seconds) to wait for data on the socket. Default is `10s`
 
-[id="plugins-{type}s-{plugin}-ssl_certificate_validation"]
-===== `ssl_certificate_validation` 
-
-  * Value type is <<boolean,boolean>>
-  * Default value is `true`
-
-Set this to false to disable SSL/TLS certificate validation
-Note: setting this to false is generally considered insecure!
-
 [id="plugins-{type}s-{plugin}-target"]
 ===== `target` 
 
