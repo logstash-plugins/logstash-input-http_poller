@@ -1,5 +1,5 @@
 ## 3.3.4
-  - Docs: Remove row in overview table to fix build error
+  - Docs: Remove ssl_certificate_validation option from the docs
 
 ## 3.3.3
  - Don't bleed URls credentials on startup or on exception #82
