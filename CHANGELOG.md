@@ -1,3 +1,6 @@
+## 4.0.4
+  - Update gemspec summary
+
 ## 4.0.3
   - Docs: Remove row in overview table to fix build error
   
