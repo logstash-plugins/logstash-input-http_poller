@@ -282,10 +282,7 @@ If you'd like to use an HTTP proxy . This supports multiple configuration syntax
   * Value type is <<number,number>>
   * Default value is `60`
 
-This module makes it easy to add a very fully configured HTTP client to logstash
-based on [Manticore](https://github.com/cheald/manticore).
-For an example of its usage see https://github.com/logstash-plugins/logstash-input-http_poller
-Timeout (in seconds) for the entire request
+Timeout (in seconds) for the entire request.
 
 [id="plugins-{type}s-{plugin}-retry_non_idempotent"]
 ===== `retry_non_idempotent` 
