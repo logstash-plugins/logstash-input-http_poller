@@ -462,6 +462,40 @@ describe LogStash::Inputs::HTTP_Poller do
           expect(event.get(target)).to include(payload_normalized)
         end
       end
+
+      context 'using a line codec' do
+        let(:opts) do
+          default_opts.merge({"codec" => "line"})
+        end
+        subject(:events) do
+          [].tap do |events|
+            events << queue.pop until queue.empty?
+          end
+        end
+
+        context 'when response has a trailing newline' do
+          let(:response_body) { "one\ntwo\nthree\nfour\n" }
+          it 'emits all events' do
+            expect(events.size).to equal(4)
+            messages = events.map{|e| e.get('message')}
+            expect(messages).to include('one')
+            expect(messages).to include('two')
+            expect(messages).to include('three')
+            expect(messages).to include('four')
+          end
+        end
+        context 'when response has no trailing newline' do
+          let(:response_body) { "one\ntwo\nthree\nfour" }
+          it 'emits all events' do
+            expect(events.size).to equal(4)
+            messages = events.map{|e| e.get('message')}
+            expect(messages).to include('one')
+            expect(messages).to include('two')
+            expect(messages).to include('three')
+            expect(messages).to include('four')
+          end
+        end
+      end
     end
   end
 
