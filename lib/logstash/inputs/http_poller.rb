@@ -165,7 +165,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     # If there is a usable response. HEAD requests are `nil` and empty get
     # responses come up as "" which will cause the codec to not yield anything
     if body && body.size > 0
-      @codec.decode(body) do |decoded|
+      decode_and_flush(@codec, body) do |decoded|
         event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
         handle_decoded_event(queue, name, request, response, event, execution_time)
       end
@@ -173,6 +173,12 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       event = ::LogStash::Event.new
       handle_decoded_event(queue, name, request, response, event, execution_time)
     end
+  end
+
+  private
+  def decode_and_flush(codec, body, &yielder)
+    codec.decode(body, &yielder)
+    codec.flush(&yielder)
   end
 
   private
