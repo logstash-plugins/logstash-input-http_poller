@@ -114,7 +114,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-proxy>> |<<,>>|No
 | <<plugins-{type}s-{plugin}-request_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-retry_non_idempotent>> |<<boolean,boolean>>|No
-| <<plugins-{type}s-{plugin}-schedule>> |<<hash,hash>>|No
+| <<plugins-{type}s-{plugin}-schedule>> |<<hash,hash>>|Yes
 | <<plugins-{type}s-{plugin}-socket_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-target>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-truststore>> |a valid filesystem path|No
