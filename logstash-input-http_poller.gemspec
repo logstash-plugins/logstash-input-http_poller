@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   # Gem dependencies
   s.add_runtime_dependency "logstash-core-plugin-api", ">= 1.60", "<= 2.99"
   s.add_runtime_dependency 'logstash-codec-plain'
-  s.add_runtime_dependency 'logstash-mixin-http_client', ">= 6.0.0", "< 7.0.0"
+  s.add_runtime_dependency 'logstash-mixin-http_client', "~> 7"
   s.add_runtime_dependency 'stud', "~> 0.0.22"
   s.add_runtime_dependency 'rufus-scheduler', "~>3.0.9"
 
