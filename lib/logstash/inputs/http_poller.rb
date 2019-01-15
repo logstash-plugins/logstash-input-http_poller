@@ -144,6 +144,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     end
 
     client.execute!
+    stop if ["in", "at"].include? @schedule.keys.first
   end
 
   private
