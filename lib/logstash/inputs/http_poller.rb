@@ -17,8 +17,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # The name and the url will be passed in the outputed event
   config :urls, :validate => :hash, :required => true
 
-  config :interval, :validate => :number, :obsolete => "The interval options is obsolete. Use schedule instead"
-
   # Schedule of when to periodically poll from the urls
   # Format: A hash with
   #   + key: "cron" | "every" | "in" | "at"

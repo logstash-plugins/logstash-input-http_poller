@@ -1,3 +1,6 @@
+## 5.0.0
+ - Removed obsolete field `interval`
+
 ## 4.0.6
   - Changed `schedule` entry to show that it is required
   [#102](https://github.com/logstash-plugins/logstash-input-http_poller/pull/102)
