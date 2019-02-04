@@ -1,3 +1,6 @@
+## 5.0.1
+ - Fixed minor doc and doc formatting issues [#107](https://github.com/logstash-plugins/logstash-input-http_poller/pull/107)
+
 ## 5.0.0
  - Removed obsolete field `interval`
 
