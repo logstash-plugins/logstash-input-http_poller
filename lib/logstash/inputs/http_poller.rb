@@ -6,10 +6,10 @@ require "socket" # for Socket.gethostname
 require "manticore"
 require "rufus/scheduler"
 
-class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
+class LogStash::Inputs::HTTP_Poller2 < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
 
-  config_name "http_poller"
+  config_name "http_poller2"
 
   default :codec, "json"
 
@@ -40,7 +40,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
-    @logger.info("Registering http_poller Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
+    @logger.info("Registering http_poller2 Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
 
     setup_requests!
   end
