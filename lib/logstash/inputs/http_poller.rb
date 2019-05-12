@@ -59,6 +59,11 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def normalize_request(url_or_spec)
     if url_or_spec.is_a?(String)
       res = [:get, url_or_spec]
+      #substitute date variables if passed as part of the URL string
+      now_datetime = DateTime.now
+      res.gsub!(/{{%y}}/, now_datetime.year)
+      res.gsub!(/{{%m}}/, now_datetime.month)
+
     elsif url_or_spec.is_a?(Hash)
       # The client will expect keys / values
       spec = Hash[url_or_spec.clone.map {|k,v| [k.to_sym, v] }] # symbolize keys
