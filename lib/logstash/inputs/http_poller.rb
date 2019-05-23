@@ -5,6 +5,7 @@ require "logstash/plugin_mixins/http_client"
 require "socket" # for Socket.gethostname
 require "manticore"
 require "rufus/scheduler"
+require "date"
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
@@ -34,6 +35,23 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # Set this value to the name of the field you'd like to store a nested
   # hash of metadata.
   config :metadata_target, :validate => :string, :default => '@metadata'
+
+  # The name of a variable to use in string replacement for time based calls in the past
+  # making available as a variable to work around hard-coded string substition issues
+  config :time_back_buffer_string, :validate => :string, :default => 'time_back_buffer'
+
+  # The amount of time in seconds to poll backwards
+  config :time_back_buffer, :validate => :number
+
+  # The name of a variable to use in string replacement for time based calls in the past
+  # making available as a variable to work around hard-coded string substition issues
+  config :time_forward_buffer_string, :validate => :string, :default => 'time_forward_buffer'
+
+  # The amount of time in seconds to poll forwards
+  config :time_forward_buffer, :validate => :number, :default => 0
+
+  # get the timeformat, to support seconds and milliseconds
+  config :time_format, :validate => ['seconds','milliseconds'], :default => 'seconds'
 
   public
   Schedule_types = %w(cron every at in)
@@ -147,7 +165,51 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def request_async(queue, name, request)
     @logger.debug? && @logger.debug("Fetching URL", :name => name, :url => request)
+    @logger.debug? && @logger.debug("Forward Buffer", :buffer => @time_back_buffer)
+    @logger.debug? && @logger.debug("Backward Buffer", :buffer => @time_forward_buffer)
+    @logger.debug? && @logger.debug("Time Format", :format => @time_format)
+    # Grab the current time
     started = Time.now
+
+    # this needs to be a DateTime to deal with subtractions
+    currenttime = DateTime.now
+    @logger.debug? && @logger.debug("Current Time", :currenttime => currenttime)
+    # If we have the @time_back_buffer set, we modify the URL with a calculated timestamp
+    back_buffer = @time_back_buffer
+    forward_buffer = @time_forward_buffer
+
+    # To support multiple formats
+    # https://apidock.com/ruby/DateTime/strftime
+    if @time_format == "seconds"
+      time_format_code = '%s'
+    elsif @time_format == "milliseconds"
+      time_format_code = '%Q'
+    end
+
+    # Deal with buffers going backwards
+    if @time_back_buffer && @time_back_buffer > 0
+      # Rational is fractions, and the second number is the number of seconds in a day
+      # Datetime is the time since the unix epoch, and it works using rational numbers
+      # https://stackoverflow.com/a/10056201 has more info
+      buffer = currenttime - Rational(back_buffer,86400)
+      @logger.debug? && @logger.debug("Back Buffer", :buffer => buffer)
+	    request[1] = request[1].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
+      #test1 = request[1].gsub(/#{time_back_buffer_string}/,back_buffer.strftime('%Q'))
+      #test2 = request[1].gsub(@time_back_buffer_string,back_buffer.strftime('%Q'))
+    end
+
+    # deal with forward buffers, if we need to
+    # We can tolerate a zero here because it would indicate 'now'
+    if @time_forward_buffer && @time_forward_buffer >= 0
+      # Rational is fractions, and the second number is the number of seconds in a day
+      # Datetime is the time since the unix epoch, and it works using rational numbers
+      # https://stackoverflow.com/a/10056201 has more info
+      buffer = currenttime + Rational(forward_buffer,86400)
+      @logger.debug? && @logger.debug("Forward Buffer", :buffer => buffer)
+	    request[1] = request[1].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
+      #test1 = request[1].gsub(/#{time_back_buffer_string}/,back_buffer.strftime('%Q'))
+      #test2 = request[1].gsub(@time_back_buffer_string,back_buffer.strftime('%Q'))
+    end
 
     method, *request_opts = request
     client.async.send(method, *request_opts).
