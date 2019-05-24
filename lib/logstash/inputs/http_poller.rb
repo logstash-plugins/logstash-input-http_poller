@@ -196,7 +196,18 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       # https://stackoverflow.com/a/10056201 has more info
       buffer = currenttime - Rational(back_buffer,86400)
       @logger.debug? && @logger.debug("Back Buffer", :buffer => buffer)
-	    request[1] = request[1].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
+      request.each_with_index do |entry, i| 
+        # We need to verify we're working with a string, otherwise we run in to method not found errors 
+        if request[i].is_a? String 
+          # And lets only modify strings that actually include our text
+          if request[i].include?("#{time_back_buffer_string}")
+            # Originally request[1] = request[1].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
+            @logger.debug? && @logger.debug("URL timestamp - backwards - pre:", :url => request[i])
+            request[i] = request[i].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
+            @logger.debug? && @logger.debug("URL timestamp - backwards - post:", :url => request[i])
+		      end
+		    end
+	    end
     end
 
     # deal with forward buffers, if we need to
@@ -207,7 +218,18 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       # https://stackoverflow.com/a/10056201 has more info
       buffer = currenttime + Rational(forward_buffer,86400)
       @logger.debug? && @logger.debug("Forward Buffer", :buffer => buffer)
-	    request[1] = request[1].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
+	    request.each_with_index do |entry, i| 
+        # We need to verify we're working with a string, otherwise we run in to method not found errors 
+        if request[i].is_a? String 
+          # And lets only modify strings that actually include our text
+          if request[i].include?("#{time_forward_buffer_string}")
+            # Originally request[1] = request[1].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
+            @logger.debug? && @logger.debug("URL timestamp - forwards - pre:", :url => request[i])
+            request[i] = request[i].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
+            @logger.debug? && @logger.debug("URL timestamp - forwards - post:", :url => request[i])
+		      end
+		    end
+	    end
     end
 
     method, *request_opts = request
