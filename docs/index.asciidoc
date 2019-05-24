@@ -117,11 +117,11 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-schedule>> |<<hash,hash>>|Yes
 | <<plugins-{type}s-{plugin}-socket_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-target>> |<<string,string>>|No
-| <<plugins-{type}s-{plugin}-time_back_buffer_string |<<string,string>>|No
-| <<plugins-{type}s-{plugin}-time_back_buffer |<<number,number>>|No
-| <<plugins-{type}s-{plugin}-time_forward_buffer_string |<<string,string>>|No
-| <<plugins-{type}s-{plugin}-time_forward_buffer |<<number,number>>|No
-| <<plugins-{type}s-{plugin}-time_format |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-time_back_buffer_string>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-time_back_buffer>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-time_forward_buffer_string>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-time_forward_buffer>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-time_format>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-truststore>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-truststore_password>> |<<password,password>>|No
 | <<plugins-{type}s-{plugin}-truststore_type>> |<<string,string>>|No
@@ -330,7 +330,7 @@ Timeout (in seconds) to wait for data on the socket. Default is `10s`
 Define the target field for placing the received data. If this setting is omitted, the data will be stored at the root (top level) of the event.
 
 [id="plugins-{type}s-{plugin}-time_back_buffer_string"]
-=====    time_back_buffer_string
+===== `time_back_buffer_string`
 
   * Value type is <<string,string>>
   * Default value is `time_back_buffer`
@@ -338,7 +338,7 @@ Define the target field for placing the received data. If this setting is omitte
 The text to replace in the URL with a formatted time string that represents a time in the past
 
 [id="plugins-{type}s-{plugin}-time_back_buffer"]
-=====    time_back_buffer
+===== `time_back_buffer`
 
   * Value type is <<number,number>>
   * There is no default value for this setting
@@ -346,7 +346,7 @@ The text to replace in the URL with a formatted time string that represents a ti
 The time in seconds to set the 'time_back_buffer' backwards
 
 [id="plugins-{type}s-{plugin}-time_forward_buffer_string"]
-=====    time_forward_buffer_string
+===== `time_forward_buffer_string`
 
   * Value type is <<string,string>>
   * Default value is `time_forward_buffer`
@@ -354,7 +354,7 @@ The time in seconds to set the 'time_back_buffer' backwards
 The text to replace in the URL with a formatted time string that represents a time in the future
 
 [id="plugins-{type}s-{plugin}-time_forward_buffer"]
-=====    time_forward_buffer
+===== `time_forward_buffer`
 
   * Value type is <<number,number>>
   * Default value is `0`
@@ -362,7 +362,7 @@ The text to replace in the URL with a formatted time string that represents a ti
 The time in seconds to set the 'time_forward_buffer' forwards
 
 [id="plugins-{type}s-{plugin}-time_format"]
-=====    time_format
+===== `time_format`
 
   * Value type is <<string,string>>
   * Default value is `'%s'`
