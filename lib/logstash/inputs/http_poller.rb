@@ -51,7 +51,12 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   config :time_forward_buffer, :validate => :number, :default => 0
 
   # get the timeformat, to support seconds and milliseconds
-  config :time_format, :validate => ['seconds','milliseconds'], :default => 'seconds'
+  # Common time formats and codes
+  # %FT%R     - 2007-11-19T08:37          Calendar date and local time (extended)
+  # %FT%T%:z  - 2007-11-19T08:37:48-06:00 Date and time of day for calendar date (extended)
+  # %s      - Number of seconds since 1970-01-01 00:00:00 UTC.
+  # %Q      - Number of milliseconds since 1970-01-01 00:00:00 UTC.
+  config :time_format, :validate => :string
 
   public
   Schedule_types = %w(cron every at in)
@@ -180,10 +185,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     # To support multiple formats
     # https://apidock.com/ruby/DateTime/strftime
-    if @time_format == "seconds"
-      time_format_code = '%s'
-    elsif @time_format == "milliseconds"
-      time_format_code = '%Q'
+    if @time_format
+      time_format_code = @time_format
     end
 
     # Deal with buffers going backwards
@@ -194,8 +197,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       buffer = currenttime - Rational(back_buffer,86400)
       @logger.debug? && @logger.debug("Back Buffer", :buffer => buffer)
 	    request[1] = request[1].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
-      #test1 = request[1].gsub(/#{time_back_buffer_string}/,back_buffer.strftime('%Q'))
-      #test2 = request[1].gsub(@time_back_buffer_string,back_buffer.strftime('%Q'))
     end
 
     # deal with forward buffers, if we need to
@@ -207,8 +208,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       buffer = currenttime + Rational(forward_buffer,86400)
       @logger.debug? && @logger.debug("Forward Buffer", :buffer => buffer)
 	    request[1] = request[1].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
-      #test1 = request[1].gsub(/#{time_back_buffer_string}/,back_buffer.strftime('%Q'))
-      #test2 = request[1].gsub(@time_back_buffer_string,back_buffer.strftime('%Q'))
     end
 
     method, *request_opts = request
