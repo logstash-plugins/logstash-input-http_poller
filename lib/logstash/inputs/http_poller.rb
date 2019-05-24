@@ -170,8 +170,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def request_async(queue, name, request)
     @logger.debug? && @logger.debug("Fetching URL", :name => name, :url => request)
-    @logger.debug? && @logger.debug("Forward Buffer", :buffer => @time_back_buffer)
-    @logger.debug? && @logger.debug("Backward Buffer", :buffer => @time_forward_buffer)
+    @logger.debug? && @logger.debug("Forward Buffer", :buffer => @time_forward_buffer)
+    @logger.debug? && @logger.debug("Backward Buffer", :buffer => @time_back_buffer)
     @logger.debug? && @logger.debug("Time Format", :format => @time_format)
     # Grab the current time
     started = Time.now
