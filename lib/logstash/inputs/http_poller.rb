@@ -56,7 +56,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # %FT%T%:z  - 2007-11-19T08:37:48-06:00 Date and time of day for calendar date (extended)
   # %s      - Number of seconds since 1970-01-01 00:00:00 UTC.
   # %Q      - Number of milliseconds since 1970-01-01 00:00:00 UTC.
-  config :time_format, :validate => :string
+  config :time_format, :validate => :string, :default => '%s'
 
   public
   Schedule_types = %w(cron every at in)
