@@ -196,21 +196,30 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       # https://stackoverflow.com/a/10056201 has more info
       buffer = currenttime - Rational(back_buffer,86400)
       @logger.debug? && @logger.debug("Back Buffer", :buffer => buffer)
-      request.each_with_index do |entry, i| 
-        # We need to verify we're working with a string, otherwise we run in to method not found errors 
-        if request[i].is_a? String 
-          # And lets only modify strings that actually include our text
-          if request[i].include?("#{time_back_buffer_string}")
-            # Originally request[1] = request[1].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
-            @logger.debug? && @logger.debug("URL timestamp - backwards - pre:", :url => request[i])
-            request[i] = request[i].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
-            # Store the timestamp as a variable to swap it back after the URL has been fetched
-            @buffer_time_back = buffer.strftime(time_format_code)
-            @logger.debug? && @logger.debug("URL timestamp - backwards - post:", :url => request[i])
-            @logger.debug? && @logger.debug("URL timestamp - backwards - string:", :time => buffer_time_back)
-          end
-        end
+      # Turns out I don't need to handle arrays, as each request is processed separately   
+      # but I'll keep the loop here, for reference
+      if request[1].include?("#{time_back_buffer_string}")
+        @logger.debug? && @logger.debug("URL timestamp - backwards - pre:", :url => request[1])
+        request[1] = request[1].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
+        # Store the timestamp as a variable to swap it back after the URL has been fetched
+        @buffer_time_back = buffer.strftime(time_format_code)
+        @logger.debug? && @logger.debug("URL timestamp - backwards - post:", :url => request[1])
       end
+      #request.each_with_index do |entry, i| 
+      #  # We need to verify we're working with a string, otherwise we run in to method not found errors 
+      #  if request[i].is_a? String 
+      #    # And lets only modify strings that actually include our text
+      #    if request[i].include?("#{time_back_buffer_string}")
+      #      # Originally request[1] = request[1].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
+      #      @logger.debug? && @logger.debug("URL timestamp - backwards - pre:", :url => request[i])
+      #      request[i] = request[i].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
+      #      # Store the timestamp as a variable to swap it back after the URL has been fetched
+      #      @buffer_time_back = buffer.strftime(time_format_code)
+      #      @logger.debug? && @logger.debug("URL timestamp - backwards - post:", :url => request[i])
+      #      @logger.debug? && @logger.debug("URL timestamp - backwards - string:", :time => buffer_time_back)
+      #    end
+      #  end
+      #end
     end
 
     # deal with forward buffers, if we need to
@@ -221,27 +230,34 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       # https://stackoverflow.com/a/10056201 has more info
       buffer = currenttime + Rational(forward_buffer,86400)
       @logger.debug? && @logger.debug("Forward Buffer", :buffer => buffer)
-	    request.each_with_index do |entry, i| 
-        # We need to verify we're working with a string, otherwise we run in to method not found errors 
-        if request[i].is_a? String 
-          # And lets only modify strings that actually include our text
-          if request[i].include?("#{time_forward_buffer_string}")
-            # Originally request[1] = request[1].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
-            @logger.debug? && @logger.debug("URL timestamp - forwards - pre:", :url => request[i])
-            request[i] = request[i].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
-            # Store the timestamp as a variable to swap it back after the URL has been fetched
-            @buffer_time_forward = buffer.strftime(time_format_code)
-            @logger.debug? && @logger.debug("URL timestamp - forwards - post:", :url => request[i])
-            @logger.debug? && @logger.debug("URL timestamp - forwards - string:", :time => buffer_time_forward)
-          end
-        end
+      if request[1].include?("#{time_forward_buffer_string}")
+        @logger.debug? && @logger.debug("URL timestamp - forward - pre:", :url => request[1])
+        request[1] = request[1].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
+        # Store the timestamp as a variable to swap it back after the URL has been fetched
+        @buffer_time_forward = buffer.strftime(time_format_code)
+        @logger.debug? && @logger.debug("URL timestamp - forward - post:", :url => request[1])
       end
+      #  request.each_with_index do |entry, i| 
+      #  # We need to verify we're working with a string, otherwise we run in to method not found errors 
+      #  if request[i].is_a? String 
+      #    # And lets only modify strings that actually include our text
+      #    if request[i].include?("#{time_forward_buffer_string}")
+      #      # Originally request[1] = request[1].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
+      #      @logger.debug? && @logger.debug("URL timestamp - forwards - pre:", :url => request[i])
+      #      request[i] = request[i].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
+      #      # Store the timestamp as a variable to swap it back after the URL has been fetched
+      #      @buffer_time_forward = buffer.strftime(time_format_code)
+      #      @logger.debug? && @logger.debug("URL timestamp - forwards - post:", :url => request[i])
+      #      @logger.debug? && @logger.debug("URL timestamp - forwards - string:", :time => buffer_time_forward)
+      #    end
+      #  end
+      #end
     end
 
     method, *request_opts = request
     client.async.send(method, *request_opts).
       on_success {|response| 
-    @logger.debug? && @logger.debug("URL timestamp - success - pre:", :url => request[1])
+      @logger.debug? && @logger.debug("URL timestamp - success - pre:", :url => request[1])
       handle_success(queue, name, request, response, Time.now - started)
       # If either of out buffers were set, replace the contents of the URL back to our string
       # It has been observed that the URL wasn't being set back, hence this workaround
@@ -253,7 +269,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       end
       @logger.debug? && @logger.debug("URL timestamp - success - post:", :url => request[1])}.
       on_failure {|exception|
-    @logger.debug? && @logger.debug("URL timestamp - failure - pre:", :url => request[1])
+      @logger.debug? && @logger.debug("URL timestamp - failure - pre:", :url => request[1])
       handle_failure(queue, name, request, exception, Time.now - started)
       # If either of out buffers were set, replace the contents of the URL back to our string
       # It has been observed that the URL wasn't being set back, hence this workaround
