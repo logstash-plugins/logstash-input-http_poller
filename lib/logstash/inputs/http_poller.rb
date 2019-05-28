@@ -204,7 +204,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
             # Originally request[1] = request[1].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
             @logger.debug? && @logger.debug("URL timestamp - backwards - pre:", :url => request[i])
             request[i] = request[i].gsub(/#{time_back_buffer_string}/,buffer.strftime(time_format_code))
+            # Store the timestamp as a variable to swap it back after the URL has been fetched
+            @buffer_time_back = buffer.strftime(time_format_code)
             @logger.debug? && @logger.debug("URL timestamp - backwards - post:", :url => request[i])
+            @logger.debug? && @logger.debug("URL timestamp - backwards - string:", :time => buffer_time_back)
 		      end
 		    end
 	    end
@@ -226,7 +229,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
             # Originally request[1] = request[1].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
             @logger.debug? && @logger.debug("URL timestamp - forwards - pre:", :url => request[i])
             request[i] = request[i].gsub(/#{time_forward_buffer_string}/,buffer.strftime(time_format_code))
+            # Store the timestamp as a variable to swap it back after the URL has been fetched
+            @buffer_time_forward = buffer.strftime(time_format_code)
             @logger.debug? && @logger.debug("URL timestamp - forwards - post:", :url => request[i])
+            @logger.debug? && @logger.debug("URL timestamp - forwards - string:", :time => buffer_time_forward)
 		      end
 		    end
 	    end
@@ -234,9 +240,30 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     method, *request_opts = request
     client.async.send(method, *request_opts).
-      on_success {|response| handle_success(queue, name, request, response, Time.now - started)}.
+      on_success {|response| 
+	  @logger.debug? && @logger.debug("URL timestamp - success - pre:", :url => request[1])
+      handle_success(queue, name, request, response, Time.now - started)
+	    # If either of out buffers were set, replace the contents of the URL back to our string
+	    # It has been observed that the URL wasn't being set back, hence this workaround
+	    if @buffer_time_back
+        request[1] = request[1].gsub(@buffer_time_back,time_back_buffer_string)
+      end
+	    if @buffer_time_forward
+        request[1] = request[1].gsub(@buffer_time_forward,time_forward_buffer_string)
+      end
+      @logger.debug? && @logger.debug("URL timestamp - success - post:", :url => request[1])}.
       on_failure {|exception|
+	  @logger.debug? && @logger.debug("URL timestamp - failure - pre:", :url => request[1])
       handle_failure(queue, name, request, exception, Time.now - started)
+	    # If either of out buffers were set, replace the contents of the URL back to our string
+	    # It has been observed that the URL wasn't being set back, hence this workaround
+	    if @buffer_time_back
+        request[1] = request[1].gsub(@buffer_time_back,time_back_buffer_string)
+      end
+	    if @buffer_time_forward
+        request[1] = request[1].gsub(@buffer_time_forward,time_forward_buffer_string)
+      end
+      @logger.debug? && @logger.debug("URL timestamp - failure - post:", :url => request[1])
     }
   end
 
