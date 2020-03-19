@@ -357,7 +357,35 @@ Specify the truststore type here. One of `JKS` or `PKCS12`. Default is `JKS`
   * There is no default value for this setting.
 
 A Hash of urls in this format : `"name" => "url"`.
-The name and the url will be passed in the outputed event
+The name and the url will be passed in the outputted event.
+
+The values in urls can be either:
+
+* a string url (which will be issued as an HTTP GET).
+* a sub-hash containing many useful keys provided by the Manticore backend:
+** url: the String url
+** method: (optional) the HTTP method to use (defaults to GET)
+** user: (optional) the HTTP Basic Auth user
+** password: (optional) the HTTP Basic Auth password. The password 
+must be under an auth sub-hash for Manticore, but this plugin accepts it either way.
+** headers: a hash containing key-value pairs of headers. The header must be under 
+an auth sub-hash for Manticore, but this plugin accepts it either way.
+** body: a string (supported only on POST and PUT requests)
+** possibly other options mentioned in the 
+(https://www.rubydoc.info/github/cheald/manticore/Manticore/Client#http-instance_method)[Manticore docs].
+Note that these options are not thoroughly tested and therefore liable to
+break in unexpected ways if we replace the backend.
+
+*Notes:*
+
+* Passwords specified in this way are prone to exposure in plugin log output. 
+The plugin does not declare them as passwords, and therefore doesn't wrap them in
+leak-reducing wrappers as we do elsewhere.
+* We don't guarantee that boolean-type options like follow_redirects are supported
+correctly. The strings `true` or `false` may get passed through, and in ruby any
+string is "truthy."
+* Our implementation of this plugin precludes the ability to specify auth[:eager]
+as anything other than true
 
 [id="plugins-{type}s-{plugin}-validate_after_inactivity"]
 ===== `validate_after_inactivity` 
