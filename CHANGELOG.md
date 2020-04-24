@@ -1,3 +1,6 @@
+## 5.0.2
+ - [DOC]Expanded url option to include Manticore keys [#119](https://github.com/logstash-plugins/logstash-input-http_poller/pull/119)
+
 ## 5.0.1
  - Fixed minor doc and doc formatting issues [#107](https://github.com/logstash-plugins/logstash-input-http_poller/pull/107)
 
@@ -18,7 +21,7 @@
   - Docs: Remove row in overview table to fix build error
   
 ## 4.0.2
-  - Don't bleed URLs credentials on startup and on exception #82
+  - Don't bleed URLs credentials on startup and on exception [#82](https://github.com/logstash-plugins/logstash-input-http_poller/pull/82)
 
 ## 4.0.1
   - Fix some documentation issues
