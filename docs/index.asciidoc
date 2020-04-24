@@ -95,8 +95,6 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 [cols="<,<,<",options="header",]
 |=======================================================================
 |Setting |Input type|Required
-| <<plugins-{type}s-{plugin}-user>> |<<string,string>>|no
-| <<plugins-{type}s-{plugin}-password>> |<<password,password>>|No
 | <<plugins-{type}s-{plugin}-automatic_retries>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-cacert>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-client_cert>> |a valid filesystem path|No
@@ -109,6 +107,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-keystore_password>> |<<password,password>>|No
 | <<plugins-{type}s-{plugin}-keystore_type>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-metadata_target>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-password>> |<<password,password>>|No
 | <<plugins-{type}s-{plugin}-pool_max>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-pool_max_per_route>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-proxy>> |<<,>>|No
@@ -121,6 +120,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-truststore_password>> |<<password,password>>|No
 | <<plugins-{type}s-{plugin}-truststore_type>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-urls>> |<<hash,hash>>|Yes
+| <<plugins-{type}s-{plugin}-user>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-validate_after_inactivity>> |<<number,number>>|No
 |=======================================================================
 
@@ -128,23 +128,6 @@ Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options suppo
 input plugins.
 
 &nbsp;
-
-[id="plugins-{type}s-{plugin}-user"]
-===== `user` 
-
-  * Value type is <<string,string>>
-  * There is no default value for this setting.
-
-Username to use with HTTP authentication for ALL requests. Note that you can also set this per-URL.
-If you set this you must also set the `password` option.
-
-[id="plugins-{type}s-{plugin}-password"]
-===== `password` 
-
-  * Value type is <<password,password>>
-  * There is no default value for this setting.
-
-Password to be used in conjunction with the username for HTTP authentication.
 
 [id="plugins-{type}s-{plugin}-automatic_retries"]
 ===== `automatic_retries` 
@@ -248,6 +231,14 @@ Specify the keystore type here. One of `JKS` or `PKCS12`. Default is `JKS`
 If you'd like to work with the request/response metadata.
 Set this value to the name of the field you'd like to store a nested
 hash of metadata.
+
+[id="plugins-{type}s-{plugin}-password"]
+===== `password` 
+
+  * Value type is <<password,password>>
+  * There is no default value for this setting.
+
+Password to be used in conjunction with the username for HTTP authentication.
 
 [id="plugins-{type}s-{plugin}-pool_max"]
 ===== `pool_max` 
@@ -387,6 +378,15 @@ correctly. The strings `true` or `false` may get passed through, and in ruby any
 string is "truthy."
 * Our implementation of this plugin precludes the ability to specify auth[:eager]
 as anything other than true
+
+[id="plugins-{type}s-{plugin}-user"]
+===== `user` 
+
+  * Value type is <<string,string>>
+  * There is no default value for this setting.
+
+Username to use with HTTP authentication for ALL requests. Note that you can also set this per-URL.
+If you set this you must also set the `password` option.
 
 [id="plugins-{type}s-{plugin}-validate_after_inactivity"]
 ===== `validate_after_inactivity` 
