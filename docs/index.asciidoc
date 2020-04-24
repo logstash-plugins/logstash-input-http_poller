@@ -372,9 +372,10 @@ The values in urls can be either:
 ** headers: a hash containing key-value pairs of headers.
 ** body: a string (supported only on POST and PUT requests)
 ** possibly other options mentioned in the 
-(https://www.rubydoc.info/github/cheald/manticore/Manticore/Client#http-instance_method)[Manticore docs].
-Note that these options are not thoroughly tested and therefore liable to
-break in unexpected ways if we replace the backend.
+   (https://www.rubydoc.info/github/cheald/manticore/Manticore/Client#http-instance_method)[Manticore docs].
+   Note that Manticore options that are not explicitly documented above are not
+   thoroughly tested and therefore liable to break in unexpected ways if we
+   replace the backend.
 
 *Notes:*
 
