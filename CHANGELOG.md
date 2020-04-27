@@ -1,3 +1,6 @@
+## 5.1.0
+ - Do not limit scheduler library to old version [#121](https://github.com/logstash-plugins/logstash-input-http_poller/pull/121)
+
 ## 5.0.1
  - Fixed minor doc and doc formatting issues [#107](https://github.com/logstash-plugins/logstash-input-http_poller/pull/107)
 
