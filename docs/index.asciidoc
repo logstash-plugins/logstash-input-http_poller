@@ -238,7 +238,7 @@ hash of metadata.
   * Value type is <<password,password>>
   * There is no default value for this setting.
 
-Password to be used in conjunction with the username for HTTP authentication.
+Password to be used in conjunction with <<plugins-{type}s-{plugin}-user>> for HTTP authentication.
 
 [id="plugins-{type}s-{plugin}-pool_max"]
 ===== `pool_max` 
@@ -370,10 +370,10 @@ The values in urls can be either:
 
 *Notes:*
 
-* Passwords specified in this way are prone to exposure in plugin log output. 
+* Passwords specified as a part of `urls` are prone to exposure in plugin log output. 
 The plugin does not declare them as passwords, and therefore doesn't wrap them in
 leak-reducing wrappers as we do elsewhere.
-* We don't guarantee that boolean-type options like follow_redirects are supported
+* We don't guarantee that boolean-type options like Manticore's `follow_redirects` are supported
 correctly. The strings `true` or `false` may get passed through, and in ruby any
 string is "truthy."
 * Our implementation of this plugin precludes the ability to specify auth[:eager]
@@ -386,7 +386,7 @@ as anything other than true
   * There is no default value for this setting.
 
 Username to use with HTTP authentication for ALL requests. Note that you can also set this per-URL.
-If you set this you must also set the `password` option.
+If you set this you must also set the <<plugins-{type}s-{plugin}-password>> option.
 
 [id="plugins-{type}s-{plugin}-validate_after_inactivity"]
 ===== `validate_after_inactivity` 
