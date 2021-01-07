@@ -6,10 +6,10 @@ require "socket" # for Socket.gethostname
 require "manticore"
 require "rufus/scheduler"
 
-class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
+class LogStash::Inputs::HTTP_Poller2 < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
 
-  config_name "http_poller"
+  config_name "http_poller2"
 
   default :codec, "json"
 
@@ -40,7 +40,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
-    @logger.info("Registering http_poller Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
+    @logger.info("Registering http_poller2 Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
 
     setup_requests!
   end
@@ -59,6 +59,11 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def normalize_request(url_or_spec)
     if url_or_spec.is_a?(String)
       res = [:get, url_or_spec]
+      #substitute date variables if passed as part of the URL string
+      now_datetime = DateTime.now
+      res.gsub!(/{{%y}}/, now_datetime.year)
+      res.gsub!(/{{%m}}/, now_datetime.month)
+
     elsif url_or_spec.is_a?(Hash)
       # The client will expect keys / values
       spec = Hash[url_or_spec.clone.map {|k,v| [k.to_sym, v] }] # symbolize keys

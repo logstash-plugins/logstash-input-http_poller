@@ -6,7 +6,7 @@ require "timecop"
 # Workaround for the bug reported in https://github.com/jruby/jruby/issues/4637
 require 'rspec/matchers/built_in/raise_error.rb'
 
-describe LogStash::Inputs::HTTP_Poller do
+describe LogStash::Inputs::HTTP_Poller2 do
   let(:metadata_target) { "_http_poller_metadata" }
   let(:queue) { Queue.new }
   let(:default_schedule) {
@@ -27,7 +27,7 @@ describe LogStash::Inputs::HTTP_Poller do
       "metadata_target" => metadata_target
     }
   }
-  let(:klass) { LogStash::Inputs::HTTP_Poller }
+  let(:klass) { LogStash::Inputs::HTTP_Poller2 }
 
   describe "instances" do
     subject { klass.new(default_opts) }
@@ -306,7 +306,7 @@ describe LogStash::Inputs::HTTP_Poller do
     }
 
     shared_examples "unprocessable_requests" do
-      let(:poller) { LogStash::Inputs::HTTP_Poller.new(settings) }
+      let(:poller) { LogStash::Inputs::HTTP_Poller2.new(settings) }
       subject(:event) {
         poller.send(:run_once, queue)
         queue.pop(true)
