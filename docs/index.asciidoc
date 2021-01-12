@@ -116,6 +116,11 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-schedule>> |<<hash,hash>>|Yes
 | <<plugins-{type}s-{plugin}-socket_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-target>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-time_back_buffer_string>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-time_back_buffer>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-time_forward_buffer_string>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-time_forward_buffer>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-time_format>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-truststore>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-truststore_password>> |<<password,password>>|No
 | <<plugins-{type}s-{plugin}-truststore_type>> |<<string,string>>|No
@@ -314,6 +319,51 @@ Timeout (in seconds) to wait for data on the socket. Default is `10s`
   * There is no default value for this setting.
 
 Define the target field for placing the received data. If this setting is omitted, the data will be stored at the root (top level) of the event.
+
+[id="plugins-{type}s-{plugin}-time_back_buffer_string"]
+===== `time_back_buffer_string`
+
+  * Value type is <<string,string>>
+  * Default value is `time_back_buffer`
+
+The text to replace in the URL with a formatted time string that represents a time in the past
+
+[id="plugins-{type}s-{plugin}-time_back_buffer"]
+===== `time_back_buffer`
+
+  * Value type is <<number,number>>
+  * There is no default value for this setting
+
+The time in seconds to set the 'time_back_buffer' backwards
+
+[id="plugins-{type}s-{plugin}-time_forward_buffer_string"]
+===== `time_forward_buffer_string`
+
+  * Value type is <<string,string>>
+  * Default value is `time_forward_buffer`
+
+The text to replace in the URL with a formatted time string that represents a time in the future
+
+[id="plugins-{type}s-{plugin}-time_forward_buffer"]
+===== `time_forward_buffer`
+
+  * Value type is <<number,number>>
+  * Default value is `0`
+
+The time in seconds to set the 'time_forward_buffer' forwards
+
+[id="plugins-{type}s-{plugin}-time_format"]
+===== `time_format`
+
+  * Value type is <<string,string>>
+  * Default value is `'%s'`
+
+The string representing the ruby DateTime strftime output format.
+Examples include:
+  1. %FT%R    - 2007-11-19T08:37            Calendar date and local time (extended)
+  2. %FT%T%:z - 2007-11-19T08:37:48-06:00   Date and time of day for calendar date (extended)
+  3. %s       - Number of seconds since 1970-01-01 00:00:00 UTC.
+  4. %Q       - Number of milliseconds since 1970-01-01 00:00:00 UTC.
 
 [id="plugins-{type}s-{plugin}-truststore"]
 ===== `truststore` 
