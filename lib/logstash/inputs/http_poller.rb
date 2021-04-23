@@ -75,17 +75,34 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       auth = spec[:auth]
       user = spec.delete(:user) || (auth && auth["user"])
       password = spec.delete(:password) || (auth && auth["password"])
-      
+
+      @pagination = spec[:pagination]
+      next_page_payload = @pagination[:next_page_payload]
+      next_page_placeholder = @pagination[:next_page_placeholder]
+      next_page_response_path = @pagination[:next_page_response_path]
+
+      if pagination
+        spec.delete(:pagination)
+
+        if next_page_payload.nil?
+          raise LogStash::ConfigurationError, "next page payload must be specified for input HTTP poller"
+        end
+
+        if next_page_placeholder.nil? or next_page_response_path.nil?
+          raise LogStash::ConfigurationError, "next_page_placeholder and next_page_response_path must be specified"
+        end
+      end
+
       if user.nil? ^ password.nil?
         raise LogStash::ConfigurationError, "'user' and 'password' must both be specified for input HTTP poller!"
       end
 
       if user && password
         spec[:auth] = {
-          user: user, 
+          user: user,
           pass: password,
           eager: true
-        } 
+        }
       end
       res = [method, url, spec]
     else
@@ -131,7 +148,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     @scheduler = Rufus::Scheduler.new(:max_work_threads => 1)
     #as of v3.0.9, :first_in => :now doesn't work. Use the following workaround instead
-    opts = schedule_type == "every" ? { :first_in => 0.01 } : {} 
+    opts = schedule_type == "every" ? { :first_in => 0.01 } : {}
     @scheduler.send(schedule_type, schedule_value, opts) { run_once(queue) }
     @scheduler.join
   end
@@ -158,6 +175,26 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   end
 
   private
+  def handle_pagination(decoded, request)
+    current_value = decoded
+    next_page = @pagination[:next_page_response_path].split(".").each do |part|
+      is_number = true if Integer(part) rescue nil
+
+      if is_number
+        number = Integer(part)
+        current_value = current_value[number]
+      else
+        current_value = current_value[part]
+      end
+    end
+    format_dict = {@pagination[:next_page_placeholder] => next_page}
+    next_payload = @pagination[:next_page_payload] % format_dict
+
+    method, url, opts = request
+    new_opts = opts.merge(body: next_payload)
+    request_async(queue, name, [method, url, new_opts])
+  end
+
   def handle_success(queue, name, request, response, execution_time)
     body = response.body
     # If there is a usable response. HEAD requests are `nil` and empty get
@@ -166,6 +203,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       decode_and_flush(@codec, body) do |decoded|
         event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
         handle_decoded_event(queue, name, request, response, event, execution_time)
+
+        if @pagination
+          handle_pagination(decoded, request)
+        end
       end
     else
       event = ::LogStash::Event.new
