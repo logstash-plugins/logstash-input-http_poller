@@ -77,11 +77,12 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       password = spec.delete(:password) || (auth && auth["password"])
 
       @pagination = spec[:pagination]
-      next_page_payload = @pagination[:next_page_payload]
-      next_page_placeholder = @pagination[:next_page_placeholder]
-      next_page_response_path = @pagination[:next_page_response_path]
 
       if pagination
+        next_page_payload = @pagination[:next_page_payload]
+        next_page_placeholder = @pagination[:next_page_placeholder]
+        next_page_response_path = @pagination[:next_page_response_path]
+
         spec.delete(:pagination)
 
         if next_page_payload.nil?
