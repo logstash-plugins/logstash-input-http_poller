@@ -53,21 +53,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     @method_field = ecs_select[disabled: "[#{metadata_target}][request][method]", v1: "[http][request][method]"]
     @host_field = ecs_select[disabled: "[#{metadata_target}][host]", v1: "[host][hostname]"]
     @response_code_field = ecs_select[disabled: "[#{metadata_target}][code]", v1: "[http][response][status][code]"]
-    @response_headers_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][response_headers]", v1: "[@metadata][input][http_poller][response][headers]")
-    @response_time_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][runtime_seconds]", v1: "[@metadata][input][http_poller][response][time][second]")
-    @request_retried_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][times_retried]", v1: "[@metadata][input][http_poller][request][retried]")
-    @request_name_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][name]", v1: "[@metadata][input][http_poller][request][name]")
-    @request_manticore_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][request]", v1: "[@metadata][input][http_poller][request][original]")
+    @response_headers_field = ecs_select[disabled: "[#{metadata_target}][response_headers]", v1: "[#{metadata_target}][input][http_poller][response][headers]"]
+    @response_time_field = ecs_select[disabled: "[#{metadata_target}][runtime_seconds]", v1: "[#{metadata_target}][input][http_poller][response][time][second]"]
+    @request_retried_field = ecs_select[disabled: "[#{metadata_target}][times_retried]", v1: "[#{metadata_target}][input][http_poller][request][retried]"]
+    @request_name_field = ecs_select[disabled: "[#{metadata_target}][name]", v1: "[#{metadata_target}][input][http_poller][request][name]"]
+    @request_manticore_field = ecs_select[disabled: "[#{metadata_target}][request]", v1: "[#{metadata_target}][input][http_poller][request][original]"]
     @error_msg_field = ecs_select[disabled: "[http_request_failure][error]", v1: "[error][message]"]
     @stack_trace_field = ecs_select[disabled: "[http_request_failure][backtrace]", v1: "[error][stack_trace]"]
     @fail_response_time_field = ecs_select[disabled: "[http_request_failure][runtime_seconds]", v1: "[@metadata][input][http_poller][response][time][second]"]
 
     setup_requests!
-  end
-
-  def ecs_select_metadata_target(hash)
-    return hash[:v1] if ecs_compatibility != :disabled && @metadata_target == '@metadata'
-    hash[:disabled]
   end
 
   def stop

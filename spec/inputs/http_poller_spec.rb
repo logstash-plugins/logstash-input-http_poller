@@ -296,18 +296,18 @@ describe LogStash::Inputs::HTTP_Poller do
         let(:metadata) { event.get(metadata_target) }
 
         it "should have the correct name" do
-          expect(metadata["name"]).to eql(name)
+          field = ecs_select[disabled: "[#{metadata_target}][name]", v1: "[#{metadata_target}][input][http_poller][request][name]"]
+          expect(event.get(field)).to eql(name)
         end
 
         it "should have the correct request url" do
           if url.is_a?(Hash) # If the url was specified as a complex test the whole thing
-            expect(metadata["request"]).to eql(url)
+            manticore_field = ecs_select[disabled: "[#{metadata_target}][request]",
+                                         v1: "[#{metadata_target}][input][http_poller][request][original]"]
+            expect(event.get(manticore_field)).to eql(url)
           else # Otherwise we have to make some assumptions
-            expect(metadata["request"]["url"]).to eql(url)
-          end
-
-          if ecs_compatibility != :disabled
-            expect(event.get("[url][full]")).to be_a(String)
+            url_field = ecs_select[disabled: "[#{metadata_target}][request][url]", v1: "[url][full]"]
+            expect(event.get(url_field)).to eql(url)
           end
         end
 
@@ -430,7 +430,9 @@ describe LogStash::Inputs::HTTP_Poller do
           let(:response_body) { "" }
           it "should return an empty event" do
             instance.send(:run_once, queue)
-            expect(event.get("[_http_poller_metadata][response_headers][content-length]")).to eql("0")
+            headers_field = ecs_select[disabled: "[#{metadata_target}][response_headers]",
+                                      v1: "[#{metadata_target}][input][http_poller][response][headers]"]
+            expect(event.get("#{headers_field}[content-length]")).to eql("0")
           end
         end
 
