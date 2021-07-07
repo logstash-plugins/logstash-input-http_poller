@@ -5,6 +5,7 @@ require 'flores/random'
 require "timecop"
 # Workaround for the bug reported in https://github.com/jruby/jruby/issues/4637
 require 'rspec/matchers/built_in/raise_error.rb'
+require 'logstash/plugin_mixins/ecs_compatibility_support/spec_helper'
 
 describe LogStash::Inputs::HTTP_Poller do
   let(:metadata_target) { "_http_poller_metadata" }
@@ -28,6 +29,7 @@ describe LogStash::Inputs::HTTP_Poller do
     }
   }
   let(:klass) { LogStash::Inputs::HTTP_Poller }
+
 
   describe "instances" do
     subject { klass.new(default_opts) }
@@ -133,10 +135,10 @@ describe LogStash::Inputs::HTTP_Poller do
 
             it "should properly set the auth parameter" do
               expect(normalized[2][:auth]).to eq({
-                :user => auth["user"], 
-                :pass => auth["password"],
-                :eager => true
-              })
+                                                   :user => auth["user"],
+                                                   :pass => auth["password"],
+                                                   :eager => true
+                                                 })
             end
           end
         end
@@ -144,14 +146,14 @@ describe LogStash::Inputs::HTTP_Poller do
         # Legacy way of doing things, kept for backwards compat.
         describe "auth with nested auth hash" do
           let(:url) { {"url" => "http://localhost", "method" => "get", "auth" => auth} }
-          
+
           include_examples("auth")
         end
 
         # The new 'right' way to do things
         describe "auth with direct auth options" do
           let(:url) { {"url" => "http://localhost", "method" => "get", "user" => auth["user"], "password" => auth["password"]} }
-          
+
           include_examples("auth")
         end
       end
@@ -284,216 +286,260 @@ describe LogStash::Inputs::HTTP_Poller do
     end
   end
 
-  describe "events" do
-    shared_examples("matching metadata") {
-      let(:metadata) { event.get(metadata_target) }
-
-      it "should have the correct name" do
-        expect(metadata["name"]).to eql(name)
-      end
-
-      it "should have the correct request url" do
-        if url.is_a?(Hash) # If the url was specified as a complex test the whole thing
-          expect(metadata["request"]).to eql(url)
-        else # Otherwise we have to make some assumptions
-          expect(metadata["request"]["url"]).to eql(url)
-        end
-      end
-
-      it "should have the correct code" do
-        expect(metadata["code"]).to eql(code)
-      end
-    }
-
-    shared_examples "unprocessable_requests" do
-      let(:poller) { LogStash::Inputs::HTTP_Poller.new(settings) }
-      subject(:event) {
-        poller.send(:run_once, queue)
-        queue.pop(true)
-      }
-
+  describe "events", :ecs_compatibility_support, :aggregate_failures do
+    ecs_compatibility_matrix(:disabled, :v1) do |ecs_select|
       before do
-        poller.register
-        allow(poller).to receive(:handle_failure).and_call_original
-        allow(poller).to receive(:handle_success)
-        event # materialize the subject
+        allow_any_instance_of(described_class).to receive(:ecs_compatibility).and_return(ecs_compatibility)
       end
 
-      it "should enqueue a message" do
-        expect(event).to be_a(LogStash::Event)
-      end
+      shared_examples("matching metadata") {
+        let(:metadata) { event.get(metadata_target) }
 
-      it "should enqueue a message with 'http_request_failure' set" do
-        expect(event.get("http_request_failure")).to be_a(Hash)
-      end
+        it "should have the correct name" do
+          expect(metadata["name"]).to eql(name)
+        end
 
-      it "should tag the event with '_http_request_failure'" do
-        expect(event.get("tags")).to include('_http_request_failure')
-      end
+        it "should have the correct request url" do
+          if url.is_a?(Hash) # If the url was specified as a complex test the whole thing
+            expect(metadata["request"]).to eql(url)
+          else # Otherwise we have to make some assumptions
+            expect(metadata["request"]["url"]).to eql(url)
+          end
 
-      it "should invoke handle failure exactly once" do
-        expect(poller).to have_received(:handle_failure).once
-      end
+          if ecs_compatibility != :disabled
+            expect(event.get("[url][full]")).to be_a(String)
+          end
+        end
 
-      it "should not invoke handle success at all" do
-        expect(poller).not_to have_received(:handle_success)
-      end
+        it "should have the correct code" do
+          expect(event.get(ecs_select[disabled: "[#{metadata_target}][code]", v1: "[http][response][status][code]"]))
+            .to eql(code)
+        end
 
-      include_examples("matching metadata")
-    end
-
-    context "with a non responsive server" do
-      context "due to a non-existant host" do # Fail with handlers
-        let(:name) { default_name }
-        let(:url) { "http://thouetnhoeu89ueoueohtueohtneuohn" }
-        let(:code) { nil } # no response expected
-
-        let(:settings) { default_opts.merge("urls" => { name => url}) }
-
-        include_examples("unprocessable_requests")
-      end
-
-      context "due to a bogus port number" do # fail with return?
-        let(:invalid_port) { Flores::Random.integer(65536..1000000) }
-
-        let(:name) { default_name }
-        let(:url) { "http://127.0.0.1:#{invalid_port}" }
-        let(:settings) { default_opts.merge("urls" => {name => url}) }
-        let(:code) { nil } # No response expected
-
-        include_examples("unprocessable_requests")
-      end
-    end
-
-    describe "a valid request and decoded response" do
-      let(:payload) { {"a" => 2, "hello" => ["a", "b", "c"]} }
-      let(:response_body) { LogStash::Json.dump(payload) }
-      let(:opts) { default_opts }
-      let(:instance) {
-        klass.new(opts)
-      }
-      let(:name) { default_name }
-      let(:url) { default_url }
-      let(:code) { 202 }
-
-      subject(:event) {
-        queue.pop(true)
+        it "should have the correct method and host" do
+          expect(event.get(ecs_select[disabled: "[#{metadata_target}][request][method]", v1: "[http][request][method]"]))
+            .not_to be_nil
+          expect(event.get(ecs_select[disabled: "[#{metadata_target}][host]", v1: "[host][hostname]"]))
+            .not_to be_nil
+        end
       }
 
-      before do
-        instance.register
-        u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
-        instance.client.stub(u,
-                             :body => response_body,
-                             :code => code
-        )
-        allow(instance).to receive(:decorate)
-        instance.send(:run_once, queue)
-      end
+      shared_examples "unprocessable_requests" do
+        let(:poller) { LogStash::Inputs::HTTP_Poller.new(settings) }
+        subject(:event) {
+          poller.send(:run_once, queue)
+          queue.pop(true)
+        }
 
-      it "should have a matching message" do
-        expect(event.to_hash).to include(payload)
-      end
-
-      it "should decorate the event" do
-        expect(instance).to have_received(:decorate).once
-      end
-
-      include_examples("matching metadata")
-      
-      context "with an empty body" do
-        let(:response_body) { "" }
-        it "should return an empty event" do
-          instance.send(:run_once, queue)
-          expect(event.get("[_http_poller_metadata][response_headers][content-length]")).to eql("0")
+        before do
+          poller.register
+          allow(poller).to receive(:handle_failure).and_call_original
+          allow(poller).to receive(:handle_success)
+          event # materialize the subject
         end
-      end
 
-      context "with metadata omitted" do
-        let(:opts) {
-          opts = default_opts.clone
-          opts.delete("metadata_target")
-          opts
-        }
-
-        it "should not have any metadata on the event" do
-          instance.send(:run_once, queue)
-          expect(event.get(metadata_target)).to be_nil
+        it "should enqueue a message" do
+          expect(event).to be_a(LogStash::Event)
         end
-      end
 
-      context "with a complex URL spec" do
-        let(:url) {
-          {
-            "method" => "get",
-            "url" => default_url,
-            "headers" => {
-              "X-Fry" => "I'm having one of those things, like a headache, with pictures..."
-            }
-          }
-        }
-        let(:opts) {
-          {
-            "schedule" => {
-              "cron" => "* * * * * UTC"
-              },
-            "urls" => {
-              default_name => url
-            },
-            "codec" => "json",
-            "metadata_target" => metadata_target
-          }
-        }
+        it "should enqueue a message with 'http_request_failure' set" do
+          if ecs_compatibility == :disabled
+            expect(event.get("http_request_failure")).to be_a(Hash)
+          else
+            expect(event.get("http_request_failure")).to be_nil
+            expect(event.get("error")).to be_a(Hash)
+            expect(event.get("[@metadata][input][http_poller][response][time][second]")).not_to be_nil
+          end
+        end
+
+        it "should tag the event with '_http_request_failure'" do
+          expect(event.get("tags")).to include('_http_request_failure')
+        end
+
+        it "should invoke handle failure exactly once" do
+          expect(poller).to have_received(:handle_failure).once
+        end
+
+        it "should not invoke handle success at all" do
+          expect(poller).not_to have_received(:handle_success)
+        end
 
         include_examples("matching metadata")
+      end
+
+      context "with a non responsive server" do
+        context "due to a non-existant host" do # Fail with handlers
+          let(:name) { default_name }
+          let(:url) { "http://thouetnhoeu89ueoueohtueohtneuohn" }
+          let(:code) { nil } # no response expected
+
+          let(:settings) { default_opts.merge("urls" => { name => url}) }
+
+          include_examples("unprocessable_requests")
+        end
+
+        context "due to a bogus port number" do # fail with return?
+          let(:invalid_port) { Flores::Random.integer(65536..1000000) }
+
+          let(:name) { default_name }
+          let(:url) { "http://127.0.0.1:#{invalid_port}" }
+          let(:settings) { default_opts.merge("urls" => {name => url}) }
+          let(:code) { nil } # No response expected
+
+          include_examples("unprocessable_requests")
+        end
+      end
+
+      describe "a valid request and decoded response" do
+        let(:payload) { {"a" => 2, "hello" => ["a", "b", "c"]} }
+        let(:response_body) { LogStash::Json.dump(payload) }
+        let(:opts) { default_opts }
+        let(:instance) {
+          klass.new(opts)
+        }
+        let(:name) { default_name }
+        let(:url) { default_url }
+        let(:code) { 202 }
+
+        subject(:event) {
+          queue.pop(true)
+        }
+
+        before do
+          instance.register
+          u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
+          instance.client.stub(u,
+                               :body => response_body,
+                               :code => code
+          )
+          allow(instance).to receive(:decorate)
+          instance.send(:run_once, queue)
+        end
 
         it "should have a matching message" do
           expect(event.to_hash).to include(payload)
         end
-      end
 
-      context "with a specified target" do
-        let(:target) { "mytarget" }
-        let(:opts) { default_opts.merge("target" => target) }
-
-        it "should store the event info in the target" do
-          # When events go through the pipeline they are java-ified
-          # this normalizes the payload to java types
-          payload_normalized = LogStash::Json.load(LogStash::Json.dump(payload))
-          expect(event.get(target)).to include(payload_normalized)
+        it "should decorate the event" do
+          expect(instance).to have_received(:decorate).once
         end
-      end
 
-      context 'using a line codec' do
-        let(:opts) do
-          default_opts.merge({"codec" => "line"})
-        end
-        subject(:events) do
-          [].tap do |events|
-            events << queue.pop until queue.empty?
+        include_examples("matching metadata")
+
+        context "with an empty body" do
+          let(:response_body) { "" }
+          it "should return an empty event" do
+            instance.send(:run_once, queue)
+            expect(event.get("[_http_poller_metadata][response_headers][content-length]")).to eql("0")
           end
         end
 
-        context 'when response has a trailing newline' do
-          let(:response_body) { "one\ntwo\nthree\nfour\n" }
-          it 'emits all events' do
-            expect(events.size).to equal(4)
-            messages = events.map{|e| e.get('message')}
-            expect(messages).to include('one')
-            expect(messages).to include('two')
-            expect(messages).to include('three')
-            expect(messages).to include('four')
+        context "with metadata omitted" do
+          let(:opts) {
+            opts = default_opts.clone
+            opts.delete("metadata_target")
+            opts
+          }
+
+          it "should not have any metadata on the event" do
+            instance.send(:run_once, queue)
+            expect(event.get(metadata_target)).to be_nil
           end
         end
-        context 'when response has no trailing newline' do
-          let(:response_body) { "one\ntwo\nthree\nfour" }
-          it 'emits all events' do
-            expect(events.size).to equal(4)
-            messages = events.map{|e| e.get('message')}
-            expect(messages).to include('one')
-            expect(messages).to include('two')
-            expect(messages).to include('three')
-            expect(messages).to include('four')
+
+        context "with a complex URL spec" do
+          let(:url) {
+            {
+              "method" => "get",
+              "url" => default_url,
+              "headers" => {
+                "X-Fry" => "I'm having one of those things, like a headache, with pictures..."
+              }
+            }
+          }
+          let(:opts) {
+            {
+              "schedule" => {
+                "cron" => "* * * * * UTC"
+              },
+              "urls" => {
+                default_name => url
+              },
+              "codec" => "json",
+              "metadata_target" => metadata_target
+            }
+          }
+
+          include_examples("matching metadata")
+
+          it "should have a matching message" do
+            expect(event.to_hash).to include(payload)
+          end
+        end
+
+        context "with a specified target" do
+          let(:target) { "mytarget" }
+          let(:opts) { default_opts.merge("target" => target) }
+
+          it "should store the event info in the target" do
+            # When events go through the pipeline they are java-ified
+            # this normalizes the payload to java types
+            payload_normalized = LogStash::Json.load(LogStash::Json.dump(payload))
+            expect(event.get(target)).to include(payload_normalized)
+          end
+        end
+
+        context "with default metadata target" do
+          let(:metadata_target) { "@metadata" }
+
+          it "should store the metadata info in @metadata" do
+            if ecs_compatibility == :v1
+              expect(event.get("[@metadata][input][http_poller][response][headers]")).to be_a(Hash)
+              expect(event.get("[@metadata][input][http_poller][response][time][second]")).to be_a(Float)
+              expect(event.get("[@metadata][input][http_poller][request][retried]")).to eq(0)
+              expect(event.get("[@metadata][input][http_poller][request][name]")).to eq(default_name)
+              expect(event.get("[@metadata][input][http_poller][request][original]")).to be_a(Hash)
+            else
+              expect(event.get("[@metadata][response_headers]")).to be_a(Hash)
+              expect(event.get("[@metadata][runtime_seconds]")).to be_a(Float)
+              expect(event.get("[@metadata][times_retried]")).to eq(0)
+              expect(event.get("[@metadata][name]")).to eq(default_name)
+              expect(event.get("[@metadata][request]")).to be_a(Hash)
+            end
+          end
+        end
+
+        context 'using a line codec' do
+          let(:opts) do
+            default_opts.merge({"codec" => "line"})
+          end
+          subject(:events) do
+            [].tap do |events|
+              events << queue.pop until queue.empty?
+            end
+          end
+
+          context 'when response has a trailing newline' do
+            let(:response_body) { "one\ntwo\nthree\nfour\n" }
+            it 'emits all events' do
+              expect(events.size).to equal(4)
+              messages = events.map{|e| e.get('message')}
+              expect(messages).to include('one')
+              expect(messages).to include('two')
+              expect(messages).to include('three')
+              expect(messages).to include('four')
+            end
+          end
+          context 'when response has no trailing newline' do
+            let(:response_body) { "one\ntwo\nthree\nfour" }
+            it 'emits all events' do
+              expect(events.size).to equal(4)
+              messages = events.map{|e| e.get('message')}
+              expect(messages).to include('one')
+              expect(messages).to include('two')
+              expect(messages).to include('three')
+              expect(messages).to include('four')
+            end
           end
         end
       end

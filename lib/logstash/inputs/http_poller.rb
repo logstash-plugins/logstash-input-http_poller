@@ -5,9 +5,16 @@ require "logstash/plugin_mixins/http_client"
 require "socket" # for Socket.gethostname
 require "manticore"
 require "rufus/scheduler"
+require "logstash/plugin_mixins/ecs_compatibility_support"
+require 'logstash/plugin_mixins/ecs_compatibility_support/target_check'
+require 'logstash/plugin_mixins/validator_support/field_reference_validation_adapter'
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
+  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled, :v1)
+  include LogStash::PluginMixins::ECSCompatibilitySupport::TargetCheck
+
+  extend LogStash::PluginMixins::ValidatorSupport::FieldReferenceValidationAdapter
 
   config_name "http_poller"
 
@@ -28,7 +35,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   config :schedule, :validate => :hash, :required => true
 
   # Define the target field for placing the received data. If this setting is omitted, the data will be stored at the root (top level) of the event.
-  config :target, :validate => :string
+  config :target, :validate => :field_reference
 
   # If you'd like to work with the request/response metadata.
   # Set this value to the name of the field you'd like to store a nested
@@ -42,7 +49,25 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     @logger.info("Registering http_poller Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
 
+    @url_field = ecs_select[disabled: "[#{metadata_target}][request][url]", v1: "[url][full]"]
+    @method_field = ecs_select[disabled: "[#{metadata_target}][request][method]", v1: "[http][request][method]"]
+    @host_field = ecs_select[disabled: "[#{metadata_target}][host]", v1: "[host][hostname]"]
+    @response_code_field = ecs_select[disabled: "[#{metadata_target}][code]", v1: "[http][response][status][code]"]
+    @response_headers_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][response_headers]", v1: "[@metadata][input][http_poller][response][headers]")
+    @response_time_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][runtime_seconds]", v1: "[@metadata][input][http_poller][response][time][second]")
+    @request_retried_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][times_retried]", v1: "[@metadata][input][http_poller][request][retried]")
+    @request_name_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][name]", v1: "[@metadata][input][http_poller][request][name]")
+    @request_manticore_field = ecs_select_metadata_target(disabled: "[#{metadata_target}][request]", v1: "[@metadata][input][http_poller][request][original]")
+    @error_msg_field = ecs_select[disabled: "[http_request_failure][error]", v1: "[error][message]"]
+    @stack_trace_field = ecs_select[disabled: "[http_request_failure][backtrace]", v1: "[error][stack_trace]"]
+    @fail_response_time_field = ecs_select[disabled: "[http_request_failure][runtime_seconds]", v1: "[@metadata][input][http_poller][response][time][second]"]
+
     setup_requests!
+  end
+
+  def ecs_select_metadata_target(hash)
+    return hash[:v1] if ecs_compatibility != :disabled && @metadata_target == '@metadata'
+    hash[:disabled]
   end
 
   def stop
@@ -164,7 +189,14 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     # responses come up as "" which will cause the codec to not yield anything
     if body && body.size > 0
       decode_and_flush(@codec, body) do |decoded|
-        event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
+        event = if @target.nil?
+          decoded
+        else
+          e = LogStash::Event.new
+          e.set(@target, decoded.to_hash)
+          e
+        end
+
         handle_decoded_event(queue, name, request, response, event, execution_time)
       end
     else
@@ -206,11 +238,11 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     # persisted by default, whereas metadata isn't. People don't like mysterious errors
     event.set("http_request_failure", {
       "request" => structure_request(request),
-      "name" => name,
-      "error" => exception.to_s,
-      "backtrace" => exception.backtrace,
-      "runtime_seconds" => execution_time
-   })
+      "name" => name
+    }) if ecs_compatibility == :disabled
+    event.set(@fail_response_time_field, execution_time)
+    event.set(@error_msg_field, exception.to_s)
+    event.set(@stack_trace_field, exception.backtrace)
 
     queue << event
   rescue StandardError, java.lang.Exception => e
@@ -233,27 +265,20 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def apply_metadata(event, name, request, response=nil, execution_time=nil)
     return unless @metadata_target
-    event.set(@metadata_target, event_metadata(name, request, response, execution_time))
-  end
 
-  private
-  def event_metadata(name, request, response=nil, execution_time=nil)
-    m = {
-        "name" => name,
-        "host" => @host,
-        "request" => structure_request(request),
-      }
-
-    m["runtime_seconds"] = execution_time
+    method, url, _ = request
+    event.set(@url_field, url)
+    event.set(@method_field, method)
+    event.set(@host_field, @host)
+    event.set(@response_time_field, execution_time)
+    event.set(@request_name_field, name)
+    event.set(@request_manticore_field, structure_request(request))
 
     if response
-      m["code"] = response.code
-      m["response_headers"] = response.headers
-      m["response_message"] = response.message
-      m["times_retried"] = response.times_retried
+      event.set(@response_code_field, response.code)
+      event.set(@response_headers_field, response.headers)
+      event.set(@request_retried_field, response.times_retried)
     end
-
-    m
   end
 
   private
