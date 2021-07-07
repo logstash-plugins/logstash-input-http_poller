@@ -1,5 +1,5 @@
 ## 5.1.0
-  - Add ECS support
+  - Add ECS support [#129](https://github.com/logstash-plugins/logstash-input-http_poller/pull/129)
 
 ## 5.0.2
  - [DOC]Expanded url option to include Manticore keys [#119](https://github.com/logstash-plugins/logstash-input-http_poller/pull/119)

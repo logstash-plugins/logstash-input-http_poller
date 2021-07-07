@@ -25,6 +25,33 @@ This Logstash input plugin allows you to call an HTTP API, decode the output of 
 send them on their merry way. The idea behind this plugins came from a need to read springboot
 metrics endpoint, instead of configuring jmx to monitor my java application memory/gc/ etc.
 
+[id="plugins-{type}s-{plugin}-ecs_metadata"]
+==== Event Metadata and the Elastic Common Schema (ECS)
+
+This input will add metadata about the HTTP connection itself to each event.
+
+When ECS compatibility is disabled, metadata was added to a variety of non-standard top-level fields, which has the potential to create confusion and schema conflicts downstream.
+
+With ECS Compatibility Mode, we can ensure a pipeline maintains access to this metadata throughout the event's lifecycle without polluting the top-level namespace.
+
+Here’s how ECS compatibility mode affects output.
+[cols="<l,<l,e,<e"]
+|=======================================================================
+| ECS disabled | ECS v1 | Availability | Description
+
+| [@metadata][request][url] | [url][full] | Always | The URL of the endpoint
+| [@metadata][request][method] | [http][request][method] | Always | HTTP request method
+| [@metadata][host] | [host][hostname]  | Always | Hostname
+| [@metadata][code] | [http][response][status][code] | When server responds a valid status code | HTTP response code
+| [@metadata][response_headers] | [@metadata][input][http_poller][response][headers] | When server responds with headers | HTTP headers of the response
+| [@metadata][runtime_seconds] / [http_request_failure][runtime_seconds] | [@metadata][input][http_poller][response][time][second] | Always | response time of calling endpoint
+| [@metadata][times_retried] | [@metadata][input][http_poller][request][retried] | When the poller calls server successfully | retry count from manticore
+| [@metadata][name] / [http_request_failure][name] | [@metadata][input][http_poller][request][name] | Always | The key of `urls` from poller config
+| [@metadata][request] / [http_request_failure][request]| [@metadata][input][http_poller][request][original] | Always | The whole object of `urls` from poller config
+| [http_request_failure][error] | [error][message] | When server throws exception | Error message
+| [http_request_failure][backtrace] | [error][stack_trace] | When server throws exception | Stack trace of error
+|=======================================================================
+
 ==== Example
 Reads from a list of urls and decodes the body of the response with a codec.
 The config should look like this:
@@ -101,6 +128,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-client_key>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-connect_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-cookies>> |<<boolean,boolean>>|No
+| <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
 | <<plugins-{type}s-{plugin}-follow_redirects>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-keepalive>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-keystore>> |a valid filesystem path|No
@@ -179,6 +207,67 @@ Timeout (in seconds) to wait for a connection to be established. Default is `10s
 
 Enable cookie support. With this enabled the client will persist cookies
 across requests as a normal web browser would. Enabled by default
+
+[id="plugins-{type}s-{plugin}-ecs_compatibility"]
+===== `ecs_compatibility`
+
+* Value type is <<string,string>>
+* Supported values are:
+** `disabled`: unstructured data added at root level
+** `v1`: uses `error`, `url` and `http` fields that are compatible with Elastic Common Schema
+
+Controls this plugin's compatibility with the
+{ecs-ref}[Elastic Common Schema (ECS)].
+See <<plugins-{type}s-{plugin}-ecs_metadata>> for detailed information.
+
+Example output:
+
+**Sample output: ECS disabled**
+[source,text]
+-----
+{
+    "http_poller_data" => {
+        "@version" => "1",
+        "@timestamp" => 2021-01-01T00:43:22.388Z,
+        "status" => "UP"
+    },
+    "@version" => "1",
+    "@timestamp" => 2021-01-01T00:43:22.389Z,
+}
+-----
+
+**Sample output: ECS enabled**
+[source,text]
+-----
+{
+    "http_poller_data" => {
+        "status" => "UP",
+        "@version" => "1",
+        "event" => {
+            "original" => "{\"status\":\"UP\"}"
+        },
+        "@timestamp" => 2021-01-01T00:40:59.558Z
+    },
+    "host" => {
+        "hostname" => "MacBook-Pro"
+    },
+    "url" => {
+        "full" => "http://localhost:8080/actuator/health"
+    },
+    "http" => {
+        "response" => {
+            "status" => {
+                "code" => 200
+            }
+        },
+         "request" => {
+            "method" => "get"
+        }
+    },
+    "@version" => "1",
+    "@timestamp" => 2021-01-01T00:40:59.559Z
+}
+-----
 
 [id="plugins-{type}s-{plugin}-follow_redirects"]
 ===== `follow_redirects` 
