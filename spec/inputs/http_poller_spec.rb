@@ -257,7 +257,7 @@ describe LogStash::Inputs::HTTP_Poller do
         instance.stop
         runner.kill
         runner.join
-        expect(queue.size).to eq(3)
+        expect(queue.size).to be_between(2, 3)
       end
     end
 
