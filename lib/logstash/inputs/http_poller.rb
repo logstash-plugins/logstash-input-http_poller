@@ -54,6 +54,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     @host_field = ecs_select[disabled: "[#{metadata_target}][host]", v1: "[host][hostname]"]
     @response_code_field = ecs_select[disabled: "[#{metadata_target}][code]", v1: "[http][response][status][code]"]
     @response_headers_field = ecs_select[disabled: "[#{metadata_target}][response_headers]", v1: "[#{metadata_target}][input][http_poller][response][headers]"]
+    @response_message_field = ecs_select[disabled: "[#{metadata_target}][response_message]", v1: "[#{metadata_target}][input][http_poller][response][status][message]"]
     @response_time_field = ecs_select[disabled: "[#{metadata_target}][runtime_seconds]", v1: "[#{metadata_target}][input][http_poller][response][time][second]"]
     @request_retried_field = ecs_select[disabled: "[#{metadata_target}][times_retried]", v1: "[#{metadata_target}][input][http_poller][request][retried]"]
     @request_name_field = ecs_select[disabled: "[#{metadata_target}][name]", v1: "[#{metadata_target}][input][http_poller][request][name]"]
@@ -272,6 +273,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     if response
       event.set(@response_code_field, response.code)
       event.set(@response_headers_field, response.headers)
+      event.set(@response_message_field, response.message)
       event.set(@request_retried_field, response.times_retried)
     end
   end

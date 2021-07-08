@@ -44,6 +44,7 @@ Here’s how ECS compatibility mode affects output.
 | [@metadata][host] | [host][hostname]  | Always | Hostname
 | [@metadata][code] | [http][response][status][code] | When server responds a valid status code | HTTP response code
 | [@metadata][response_headers] | [@metadata][input][http_poller][response][headers] | When server responds with headers | HTTP headers of the response
+| [@metadata][response_message] | [@metadata][input][http_poller][response][status][message] | When server responds with status line | message of status line of HTTP headers
 | [@metadata][runtime_seconds] / [http_request_failure][runtime_seconds] | [@metadata][input][http_poller][response][time][second] | Always | response time of calling endpoint
 | [@metadata][times_retried] | [@metadata][input][http_poller][request][retried] | When the poller calls server successfully | retry count from manticore
 | [@metadata][name] / [http_request_failure][name] | [@metadata][input][http_poller][request][name] | Always | The key of `urls` from poller config
