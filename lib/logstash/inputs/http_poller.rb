@@ -8,13 +8,18 @@ require "rufus/scheduler"
 require "logstash/plugin_mixins/ecs_compatibility_support"
 require 'logstash/plugin_mixins/ecs_compatibility_support/target_check'
 require 'logstash/plugin_mixins/validator_support/field_reference_validation_adapter'
+require 'logstash/plugin_mixins/event_support/event_factory_adapter'
+require 'logstash/plugin_mixins/event_support/from_json_helper'
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
-  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled, :v1)
+  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled, :v1, :v8 => :v1)
   include LogStash::PluginMixins::ECSCompatibilitySupport::TargetCheck
 
   extend LogStash::PluginMixins::ValidatorSupport::FieldReferenceValidationAdapter
+
+  include LogStash::PluginMixins::EventSupport::EventFactoryAdapter
+  include LogStash::PluginMixins::EventSupport::FromJsonHelper
 
   config_name "http_poller"
 
@@ -185,14 +190,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     # responses come up as "" which will cause the codec to not yield anything
     if body && body.size > 0
       decode_and_flush(@codec, body) do |decoded|
-        event = if @target.nil?
-          decoded
-        else
-          e = LogStash::Event.new
-          e.set(@target, decoded.to_hash)
-          e
-        end
-
+        event = @target ? targeted_event_factory.new_event(decoded.to_hash) : decoded
         handle_decoded_event(queue, name, request, response, event, execution_time)
       end
     else

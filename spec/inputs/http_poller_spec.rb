@@ -287,7 +287,7 @@ describe LogStash::Inputs::HTTP_Poller do
   end
 
   describe "events", :ecs_compatibility_support, :aggregate_failures do
-    ecs_compatibility_matrix(:disabled, :v1) do |ecs_select|
+    ecs_compatibility_matrix(:disabled, :v1, :v8 => :v1) do |ecs_select|
       before do
         allow_any_instance_of(described_class).to receive(:ecs_compatibility).and_return(ecs_compatibility)
       end
@@ -495,18 +495,18 @@ describe LogStash::Inputs::HTTP_Poller do
           let(:metadata_target) { "@metadata" }
 
           it "should store the metadata info in @metadata" do
-            if ecs_compatibility == :v1
-              expect(event.get("[@metadata][input][http_poller][response][headers]")).to be_a(Hash)
-              expect(event.get("[@metadata][input][http_poller][response][time][second]")).to be_a(Float)
-              expect(event.get("[@metadata][input][http_poller][request][retried]")).to eq(0)
-              expect(event.get("[@metadata][input][http_poller][request][name]")).to eq(default_name)
-              expect(event.get("[@metadata][input][http_poller][request][original]")).to be_a(Hash)
-            else
+            if ecs_compatibility == :disabled
               expect(event.get("[@metadata][response_headers]")).to be_a(Hash)
               expect(event.get("[@metadata][runtime_seconds]")).to be_a(Float)
               expect(event.get("[@metadata][times_retried]")).to eq(0)
               expect(event.get("[@metadata][name]")).to eq(default_name)
               expect(event.get("[@metadata][request]")).to be_a(Hash)
+            else
+              expect(event.get("[@metadata][input][http_poller][response][headers]")).to be_a(Hash)
+              expect(event.get("[@metadata][input][http_poller][response][time][second]")).to be_a(Float)
+              expect(event.get("[@metadata][input][http_poller][request][retried]")).to eq(0)
+              expect(event.get("[@metadata][input][http_poller][request][name]")).to eq(default_name)
+              expect(event.get("[@metadata][input][http_poller][request][original]")).to be_a(Hash)
             end
           end
         end
