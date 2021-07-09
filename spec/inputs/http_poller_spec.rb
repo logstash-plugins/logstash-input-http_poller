@@ -302,24 +302,25 @@ describe LogStash::Inputs::HTTP_Poller do
 
         it "should have the correct request url" do
           if url.is_a?(Hash) # If the url was specified as a complex test the whole thing
-            manticore_field = ecs_select[disabled: "[#{metadata_target}][request]",
+            http_client_field = ecs_select[disabled: "[#{metadata_target}][request]",
                                          v1: "[#{metadata_target}][input][http_poller][request][original]"]
-            expect(event.get(manticore_field)).to eql(url)
+            expect(event.get(http_client_field)).to eql(url)
           else # Otherwise we have to make some assumptions
-            url_field = ecs_select[disabled: "[#{metadata_target}][request][url]", v1: "[url][full]"]
+            url_field = ecs_select[disabled: "[#{metadata_target}][request][url]",
+                                   v1: "[#{metadata_target}][input][http_poller][request][original][url]"]
             expect(event.get(url_field)).to eql(url)
           end
         end
 
         it "should have the correct code" do
-          expect(event.get(ecs_select[disabled: "[#{metadata_target}][code]", v1: "[http][response][status][code]"]))
+          expect(event.get(ecs_select[disabled: "[#{metadata_target}][code]",
+                                      v1: "[#{metadata_target}][input][http_poller][response][status_code]"]))
             .to eql(code)
         end
 
-        it "should have the correct method and host" do
-          expect(event.get(ecs_select[disabled: "[#{metadata_target}][request][method]", v1: "[http][request][method]"]))
-            .not_to be_nil
-          expect(event.get(ecs_select[disabled: "[#{metadata_target}][host]", v1: "[host][hostname]"]))
+        it "should have the correct host" do
+          expect(event.get(ecs_select[disabled: "[#{metadata_target}][host]",
+                                      v1: "[#{metadata_target}][input][http_poller][request][host][hostname]"]))
             .not_to be_nil
         end
       }
@@ -345,10 +346,14 @@ describe LogStash::Inputs::HTTP_Poller do
         it "should enqueue a message with 'http_request_failure' set" do
           if ecs_compatibility == :disabled
             expect(event.get("http_request_failure")).to be_a(Hash)
+            expect(event.get("[http_request_failure][runtime_seconds]")).to be_a(Float)
           else
             expect(event.get("http_request_failure")).to be_nil
             expect(event.get("error")).to be_a(Hash)
-            expect(event.get("[@metadata][input][http_poller][response][time][second]")).not_to be_nil
+            expect(event.get("[event][duration]")).to be_a(Integer)
+            expect(event.get("[url][full]")).to eq(url)
+            expect(event.get("[http][request][method]")).to be_a(String)
+            expect(event.get("[host][hostname]")).to be_a(String)
           end
         end
 
@@ -503,8 +508,8 @@ describe LogStash::Inputs::HTTP_Poller do
               expect(event.get("[@metadata][request]")).to be_a(Hash)
             else
               expect(event.get("[@metadata][input][http_poller][response][headers]")).to be_a(Hash)
-              expect(event.get("[@metadata][input][http_poller][response][time][second]")).to be_a(Float)
-              expect(event.get("[@metadata][input][http_poller][request][retried]")).to eq(0)
+              expect(event.get("[@metadata][input][http_poller][response][elapsed_time_ns]")).to be_a(Integer)
+              expect(event.get("[@metadata][input][http_poller][request][retry_count]")).to eq(0)
               expect(event.get("[@metadata][input][http_poller][request][name]")).to eq(default_name)
               expect(event.get("[@metadata][input][http_poller][request][original]")).to be_a(Hash)
             end

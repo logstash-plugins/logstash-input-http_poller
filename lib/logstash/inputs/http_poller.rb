@@ -51,20 +51,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     @logger.info("Registering http_poller Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
 
-    @url_field = ecs_select[disabled: "[#{metadata_target}][request][url]", v1: "[url][full]"]
-    @method_field = ecs_select[disabled: "[#{metadata_target}][request][method]", v1: "[http][request][method]"]
-    @host_field = ecs_select[disabled: "[#{metadata_target}][host]", v1: "[host][hostname]"]
-    @response_code_field = ecs_select[disabled: "[#{metadata_target}][code]", v1: "[http][response][status][code]"]
-    @response_headers_field = ecs_select[disabled: "[#{metadata_target}][response_headers]", v1: "[#{metadata_target}][input][http_poller][response][headers]"]
-    @response_message_field = ecs_select[disabled: "[#{metadata_target}][response_message]", v1: "[#{metadata_target}][input][http_poller][response][status][message]"]
-    @response_time_field = ecs_select[disabled: "[#{metadata_target}][runtime_seconds]", v1: "[#{metadata_target}][input][http_poller][response][time][second]"]
-    @request_retried_field = ecs_select[disabled: "[#{metadata_target}][times_retried]", v1: "[#{metadata_target}][input][http_poller][request][retried]"]
-    @request_name_field = ecs_select[disabled: "[#{metadata_target}][name]", v1: "[#{metadata_target}][input][http_poller][request][name]"]
-    @request_manticore_field = ecs_select[disabled: "[#{metadata_target}][request]", v1: "[#{metadata_target}][input][http_poller][request][original]"]
-    @error_msg_field = ecs_select[disabled: "[http_request_failure][error]", v1: "[error][message]"]
-    @stack_trace_field = ecs_select[disabled: "[http_request_failure][backtrace]", v1: "[error][stack_trace]"]
-    @fail_response_time_field = ecs_select[disabled: "[http_request_failure][runtime_seconds]", v1: "[@metadata][input][http_poller][response][time][second]"]
-
+    setup_ecs_field!
     setup_requests!
   end
 
@@ -76,6 +63,35 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def setup_requests!
     @requests = Hash[@urls.map {|name, url| [name, normalize_request(url)] }]
+  end
+
+  private
+  # In the context of ECS, there are two type of events in this plugin, valid HTTP response and failure
+  # For a valid HTTP response, `url`, `request_method` and `host` are metadata of request.
+  #   The call could retrieve event which contain `[url]`, `[http][request][method]`, `[host][hostname]` data
+  #   Therefore, metadata should not write to those fields
+  # For a failure, `url`, `request_method` and `host` are primary data of the event because the plugin owns this event,
+  #   so it writes to url.*, http.*, host.*
+  def setup_ecs_field!
+    @request_host_field = ecs_select[disabled: "[#{metadata_target}][host]", v1: "[#{metadata_target}][input][http_poller][request][host][hostname]"]
+    @response_code_field = ecs_select[disabled: "[#{metadata_target}][code]", v1: "[#{metadata_target}][input][http_poller][response][status_code]"]
+    @response_headers_field = ecs_select[disabled: "[#{metadata_target}][response_headers]", v1: "[#{metadata_target}][input][http_poller][response][headers]"]
+    @response_message_field = ecs_select[disabled: "[#{metadata_target}][response_message]", v1: "[#{metadata_target}][input][http_poller][response][status_message]"]
+    @response_time_s_field = ecs_select[disabled: "[#{metadata_target}][runtime_seconds]", v1: nil]
+    @response_time_ns_field = ecs_select[disabled: nil, v1: "[#{metadata_target}][input][http_poller][response][elapsed_time_ns]"]
+    @request_retry_count_field = ecs_select[disabled: "[#{metadata_target}][times_retried]", v1: "[#{metadata_target}][input][http_poller][request][retry_count]"]
+    @request_name_field = ecs_select[disabled: "[#{metadata_target}][name]", v1: "[#{metadata_target}][input][http_poller][request][name]"]
+    @original_request_field = ecs_select[disabled: "[#{metadata_target}][request]", v1: "[#{metadata_target}][input][http_poller][request][original]"]
+
+    @error_msg_field = ecs_select[disabled: "[http_request_failure][error]", v1: "[error][message]"]
+    @stack_trace_field = ecs_select[disabled: "[http_request_failure][backtrace]", v1: "[error][stack_trace]"]
+    @fail_original_request_field = ecs_select[disabled: "[http_request_failure][request]", v1: nil]
+    @fail_request_name_field = ecs_select[disabled: "[http_request_failure][name]", v1: nil]
+    @fail_response_time_s_field = ecs_select[disabled: "[http_request_failure][runtime_seconds]", v1: nil]
+    @fail_response_time_ns_field = ecs_select[disabled: nil, v1: "[event][duration]"]
+    @fail_request_url_field = ecs_select[disabled: nil, v1: "[url][full]"]
+    @fail_request_method_field = ecs_select[disabled: nil, v1: "[http][request][method]"]
+    @fail_request_host_field = ecs_select[disabled: nil, v1: "[host][hostname]"]
   end
 
   private
@@ -174,10 +190,15 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     method, *request_opts = request
     client.async.send(method, *request_opts).
-      on_success {|response| handle_success(queue, name, request, response, Time.now - started)}.
-      on_failure {|exception|
-      handle_failure(queue, name, request, exception, Time.now - started)
-    }
+      on_success {|response| handle_success(queue, name, request, response, Time.now - started) }.
+      on_failure {|exception| handle_failure(queue, name, request, exception, Time.now - started) }
+  end
+
+  private
+  # time diff in float to nanoseconds
+  def to_nanoseconds(time_diff)
+    return nil if time_diff.nil?
+    (time_diff * 1000000).to_i
   end
 
   private
@@ -191,7 +212,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
         handle_decoded_event(queue, name, request, response, event, execution_time)
       end
     else
-      event = ::LogStash::Event.new
+      event = event_factory.new_event
       handle_decoded_event(queue, name, request, response, event, execution_time)
     end
   end
@@ -220,20 +241,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   # Beware, on old versions of manticore some uncommon failures are not handled
   def handle_failure(queue, name, request, exception, execution_time)
-    event = LogStash::Event.new
-    apply_metadata(event, name, request)
-
+    event = event_factory.new_event
     event.tag("_http_request_failure")
-
-    # This is also in the metadata, but we send it anyone because we want this
-    # persisted by default, whereas metadata isn't. People don't like mysterious errors
-    event.set("http_request_failure", {
-      "request" => structure_request(request),
-      "name" => name
-    }) if ecs_compatibility == :disabled
-    event.set(@fail_response_time_field, execution_time)
-    event.set(@error_msg_field, exception.to_s)
-    event.set(@stack_trace_field, exception.backtrace)
+    apply_metadata(event, name, request, nil, execution_time)
+    apply_failure_fields(event, name, request, exception, execution_time)
 
     queue << event
   rescue StandardError, java.lang.Exception => e
@@ -257,20 +268,36 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def apply_metadata(event, name, request, response=nil, execution_time=nil)
     return unless @metadata_target
 
-    method, url, _ = request
-    event.set(@url_field, url)
-    event.set(@method_field, method)
-    event.set(@host_field, @host)
-    event.set(@response_time_field, execution_time)
+    event.set(@request_host_field, @host)
+    event.set(@response_time_s_field, execution_time) if @response_time_s_field
+    event.set(@response_time_ns_field, to_nanoseconds(execution_time)) if @response_time_ns_field
     event.set(@request_name_field, name)
-    event.set(@request_manticore_field, structure_request(request))
+    event.set(@original_request_field, structure_request(request))
 
     if response
       event.set(@response_code_field, response.code)
       event.set(@response_headers_field, response.headers)
       event.set(@response_message_field, response.message)
-      event.set(@request_retried_field, response.times_retried)
+      event.set(@request_retry_count_field, response.times_retried)
     end
+  end
+
+  private
+  def apply_failure_fields(event, name, request, exception, execution_time)
+    # This is also in the metadata, but we send it anyone because we want this
+    # persisted by default, whereas metadata isn't. People don't like mysterious errors
+    event.set(@fail_original_request_field, structure_request(request)) if @fail_original_request_field
+    event.set(@fail_request_name_field, name) if @fail_request_name_field
+
+    method, url, _ = request
+    event.set(@fail_request_url_field, url) if @fail_request_url_field
+    event.set(@fail_request_method_field, method.to_s) if @fail_request_method_field
+    event.set(@fail_request_host_field, @host) if @fail_request_host_field
+
+    event.set(@fail_response_time_s_field, execution_time) if @fail_response_time_s_field
+    event.set(@fail_response_time_ns_field, to_nanoseconds(execution_time)) if @fail_response_time_ns_field
+    event.set(@error_msg_field, exception.to_s)
+    event.set(@stack_trace_field, exception.backtrace)
   end
 
   private

@@ -25,34 +25,6 @@ This Logstash input plugin allows you to call an HTTP API, decode the output of 
 send them on their merry way. The idea behind this plugins came from a need to read springboot
 metrics endpoint, instead of configuring jmx to monitor my java application memory/gc/ etc.
 
-[id="plugins-{type}s-{plugin}-ecs_metadata"]
-==== Event Metadata and the Elastic Common Schema (ECS)
-
-This input will add metadata about the HTTP connection itself to each event.
-
-When ECS compatibility is disabled, metadata was added to a variety of non-standard top-level fields, which has the potential to create confusion and schema conflicts downstream.
-
-With ECS Compatibility Mode, we can ensure a pipeline maintains access to this metadata throughout the event's lifecycle without polluting the top-level namespace.
-
-Here’s how ECS compatibility mode affects output.
-[cols="<l,<l,e,<e"]
-|=======================================================================
-| ECS disabled | ECS v1 | Availability | Description
-
-| [@metadata][request][url] | [url][full] | Always | The URL of the endpoint
-| [@metadata][request][method] | [http][request][method] | Always | HTTP request method
-| [@metadata][host] | [host][hostname]  | Always | Hostname
-| [@metadata][code] | [http][response][status][code] | When server responds a valid status code | HTTP response code
-| [@metadata][response_headers] | [@metadata][input][http_poller][response][headers] | When server responds with headers | HTTP headers of the response
-| [@metadata][response_message] | [@metadata][input][http_poller][response][status][message] | When server responds with status line | message of status line of HTTP headers
-| [@metadata][runtime_seconds] / [http_request_failure][runtime_seconds] | [@metadata][input][http_poller][response][time][second] | Always | response time of calling endpoint
-| [@metadata][times_retried] | [@metadata][input][http_poller][request][retried] | When the poller calls server successfully | retry count from manticore
-| [@metadata][name] / [http_request_failure][name] | [@metadata][input][http_poller][request][name] | Always | The key of `urls` from poller config
-| [@metadata][request] / [http_request_failure][request]| [@metadata][input][http_poller][request][original] | Always | The whole object of `urls` from poller config
-| [http_request_failure][error] | [error][message] | When server throws exception | Error message
-| [http_request_failure][backtrace] | [error][stack_trace] | When server throws exception | Stack trace of error
-|=======================================================================
-
 ==== Example
 Reads from a list of urls and decodes the body of the response with a codec.
 The config should look like this:
@@ -114,6 +86,36 @@ The above snippet will create two files `downloaded_cert.pem` and `downloaded_tr
  }
 ----------------------------------
 
+
+[id="plugins-{type}s-{plugin}-ecs_metadata"]
+==== Event Metadata and the Elastic Common Schema (ECS)
+
+This input will add metadata about the HTTP connection itself to each event.
+
+When ECS compatibility is disabled, metadata was added to a variety of non-standard top-level fields, which has the potential to create confusion and schema conflicts downstream.
+
+With ECS Compatibility Mode, we can ensure a pipeline maintains access to this metadata throughout the event's lifecycle without polluting the top-level namespace.
+
+Here’s how ECS compatibility mode affects output.
+[cols="<l,<l,e,<e"]
+|=======================================================================
+| ECS disabled | ECS v1 | Availability | Description
+
+| [@metadata][host] | [@metadata][input][http_poller][request][host][hostname] | Always | Hostname
+| [@metadata][code] | [@metadata][input][http_poller][response][status_code] | When server responds a valid status code | HTTP response code
+| [@metadata][response_headers] | [@metadata][input][http_poller][response][headers] | When server responds with headers | HTTP headers of the response
+| [@metadata][response_message] | [@metadata][input][http_poller][response][status_message] | When server responds with status line | message of status line of HTTP headers
+| [@metadata][runtime_seconds] | [@metadata][input][http_poller][response][elapsed_time_ns] | When server responds a valid status code | elapsed time of calling endpoint. ECS v1 shows in nanoseconds.
+| [http_request_failure][runtime_seconds] | [event][duration] | When server throws exception | elapsed time of calling endpoint. ECS v1 shows in nanoseconds.
+| [@metadata][times_retried] | [@metadata][input][http_poller][request][retry_count] | When the poller calls server successfully | retry count from http client library
+| [@metadata][name] / [http_request_failure][name] | [@metadata][input][http_poller][request][name] | Always | The key of `urls` from poller config
+| [@metadata][request] / [http_request_failure][request]| [@metadata][input][http_poller][request][original] | Always | The whole object of `urls` from poller config
+| [http_request_failure][error] | [error][message] | When server throws exception | Error message
+| [http_request_failure][backtrace] | [error][stack_trace] | When server throws exception | Stack trace of error
+| -- | [url][full] | When server throws exception | The URL of the endpoint
+| -- | [http][request][method] | When server throws exception | HTTP request method
+| -- | [host][hostname] | When server throws exception | Hostname
+|=======================================================================
 
 [id="plugins-{type}s-{plugin}-options"]
 ==== Http_poller Input Configuration Options
