@@ -251,26 +251,40 @@ Example output:
         },
         "@timestamp" => 2021-01-01T00:40:59.558Z
     },
-    "host" => {
-        "hostname" => "MacBook-Pro"
-    },
-    "url" => {
-        "full" => "http://localhost:8080/actuator/health"
-    },
-    "http" => {
-        "response" => {
-            "status" => {
-                "code" => 200
-            }
-        },
-         "request" => {
-            "method" => "get"
-        }
-    },
     "@version" => "1",
     "@timestamp" => 2021-01-01T00:40:59.559Z
 }
 -----
+
+**Sample error output: ECS enabled**
+[source,text]
+----
+{
+    "@timestamp" => 2021-07-09T09:53:48.721Z,
+    "@version" => "1",
+    "host" => {
+        "hostname" => "MacBook-Pro"
+    },
+    "http" => {
+        "request" => {
+            "method" => "get"
+        }
+    },
+    "event" => {
+        "duration" => 259019
+    },
+    "error" => {
+        "stack_trace" => nil,
+        "message" => "Connection refused (Connection refused)"
+    },
+    "url" => {
+        "full" => "http://localhost:8080/actuator/health"
+    },
+    "tags" => [
+        [0] "_http_request_failure"
+    ]
+}
+----
 
 [id="plugins-{type}s-{plugin}-follow_redirects"]
 ===== `follow_redirects` 
