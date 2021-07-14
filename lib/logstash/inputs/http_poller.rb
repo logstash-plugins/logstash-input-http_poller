@@ -197,7 +197,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   # time diff in float to nanoseconds
   def to_nanoseconds(time_diff)
-    return nil if time_diff.nil?
     (time_diff * 1000000).to_i
   end
 
@@ -265,7 +264,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   end
 
   private
-  def apply_metadata(event, name, request, response=nil, execution_time=nil)
+  def apply_metadata(event, name, request, response, execution_time)
     return unless @metadata_target
 
     event.set(@request_host_field, @host)
