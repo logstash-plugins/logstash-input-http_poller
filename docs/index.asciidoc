@@ -421,7 +421,8 @@ Timeout (in seconds) to wait for data on the socket. Default is `10s`
 
 Define the target field for placing the received data. If this setting is omitted, the data will be stored at the root (top level) of the event.
 
-When ECS is enabled and user wants to define `target` field, it is preferable to set `target` in codec if codec has `target` option.
+When ECS is enabled, it is preferable to set `target` in codec, `codec => json { target => "TARGET_FIELD_NAME" }`,
+if `target` option is available in codec
 
 
 [id="plugins-{type}s-{plugin}-truststore"]
