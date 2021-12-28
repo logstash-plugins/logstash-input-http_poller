@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'logstash-codec-plain'
   s.add_runtime_dependency 'logstash-mixin-http_client', "~> 7"
   s.add_runtime_dependency 'stud', "~> 0.0.22"
-  s.add_runtime_dependency 'rufus-scheduler', "~>3.0.9"
+  s.add_runtime_dependency 'rufus-scheduler', ">= 3.0.9"
   s.add_runtime_dependency 'logstash-mixin-ecs_compatibility_support', '~>1.3'
   s.add_runtime_dependency 'logstash-mixin-event_support', '~> 1.0', '>= 1.0.1'
   s.add_runtime_dependency 'logstash-mixin-validator_support', '~> 1.0'
