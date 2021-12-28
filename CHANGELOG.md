@@ -1,3 +1,6 @@
+## 5.1.1
+  - Deps: unpin rufus-scheduler dependency [#130](https://github.com/logstash-plugins/logstash-input-http_poller/pull/130)
+
 ## 5.1.0
   - Add ECS support [#129](https://github.com/logstash-plugins/logstash-input-http_poller/pull/129)
 
