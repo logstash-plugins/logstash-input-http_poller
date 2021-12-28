@@ -277,9 +277,11 @@ describe LogStash::Inputs::HTTP_Poller do
         runner = Thread.new do
           instance.run(queue)
         end
-        sleep 3
+        try(3) do
+          sleep(3)
+          expect(queue.size).to eq(1)
+        end
         instance.stop
-        runner.kill
         runner.join
         expect(queue.size).to eq(1)
       end
