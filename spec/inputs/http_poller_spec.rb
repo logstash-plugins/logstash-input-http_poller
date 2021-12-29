@@ -557,6 +557,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
   describe "stopping" do
     let(:config) { default_opts }
+    let(:allowed_lag) { 4 } # 8.1 shutting down slower with newer Rufus
     it_behaves_like "an interruptible input plugin"
   end
 end
