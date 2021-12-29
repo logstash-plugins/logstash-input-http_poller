@@ -55,8 +55,14 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     setup_requests!
   end
 
+  # @overload
   def stop
-    @scheduler.stop if @scheduler
+    @scheduler.shutdown(:wait) if @scheduler
+  end
+
+  # @overload
+  def close
+    @scheduler.shutdown if @scheduler
   end
 
   private
