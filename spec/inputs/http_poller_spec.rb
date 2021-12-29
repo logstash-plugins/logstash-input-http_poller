@@ -189,21 +189,28 @@ describe LogStash::Inputs::HTTP_Poller do
           "metadata_target" => metadata_target
         }
       }
+
+      before do
+        Timecop.travel(Time.new(2000,1,1,0,0,0,'+00:00'))
+        Timecop.scale(60)
+      end
+
+      after do
+        Timecop.return
+      end
+
       it "should run at the schedule" do
         instance = klass.new(opts)
         instance.register
-        Timecop.travel(Time.new(2000,1,1,0,0,0,'+00:00'))
-        Timecop.scale(60)
+
         queue = Queue.new
         runner = Thread.new do
           instance.run(queue)
         end
         sleep 3
         instance.stop
-        runner.kill
         runner.join
         expect(queue.size).to eq(2)
-        Timecop.return
       end
     end
 
@@ -216,21 +223,28 @@ describe LogStash::Inputs::HTTP_Poller do
           "metadata_target" => metadata_target
         }
       }
+
+      before do
+        Timecop.travel(Time.new(2000,1,1,0,0,0,'+00:00'))
+        Timecop.scale(60 * 5)
+      end
+
+      after do
+        Timecop.return
+      end
+
       it "should run at the schedule" do
         instance = klass.new(opts)
         instance.register
-        Timecop.travel(Time.new(2000,1,1,0,0,0,'+00:00'))
-        Timecop.scale(60 * 5)
+
         queue = Queue.new
         runner = Thread.new do
           instance.run(queue)
         end
         sleep 2
         instance.stop
-        runner.kill
         runner.join
         expect(queue.size).to eq(1)
-        Timecop.return
       end
     end
 
@@ -255,7 +269,6 @@ describe LogStash::Inputs::HTTP_Poller do
         #expects 3 events at T=5
         sleep 5
         instance.stop
-        runner.kill
         runner.join
         expect(queue.size).to be_between(2, 3)
       end
