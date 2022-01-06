@@ -210,7 +210,7 @@ describe LogStash::Inputs::HTTP_Poller do
         sleep 3
         instance.stop
         runner.join
-        expect(queue.size).to eq(2)
+        try(3) { expect(queue.size).to eq(2) }
       end
     end
 
