@@ -247,7 +247,7 @@ describe LogStash::Inputs::HTTP_Poller do
           #T       0123456
           #events  x x x x
           #expects 3 events at T=5
-          expect(queue.size).to be_between(2, 3)
+          try(3) { expect(queue.size).to be_between(2, 3) }
         end
       end
     end
