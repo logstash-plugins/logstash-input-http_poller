@@ -28,11 +28,12 @@ describe LogStash::Inputs::HTTP_Poller do
       "metadata_target" => metadata_target
     }
   }
-  let(:klass) { LogStash::Inputs::HTTP_Poller }
+  let(:opts) { default_opts }
 
+  subject(:plugin) { described_class.new(opts) }
 
   describe "instances" do
-    subject { klass.new(default_opts) }
+    subject { described_class.new(default_opts) }
 
     before do
       subject.register
@@ -200,18 +201,8 @@ describe LogStash::Inputs::HTTP_Poller do
       end
 
       it "should run at the schedule" do
-        instance = klass.new(opts)
-        instance.register
-        queue = Queue.new
-        begin
-          runner = Thread.new do
-            instance.run(queue)
-          end
-          sleep 3
+        run_plugin_and_yield_queue(plugin, sleep: 3) do |queue|
           try(3) { expect(queue.size).to eq(2) }
-        ensure
-          instance.stop
-          runner.join if runner
         end
       end
     end
@@ -236,17 +227,9 @@ describe LogStash::Inputs::HTTP_Poller do
       end
 
       it "should run at the schedule" do
-        instance = klass.new(opts)
-        instance.register
-
-        queue = Queue.new
-        runner = Thread.new do
-          instance.run(queue)
+        run_plugin_and_yield_queue(plugin, sleep: 2) do |queue|
+          try(3) { expect(queue.size).to eq(1) }
         end
-        sleep 2
-        instance.stop
-        runner.join
-        expect(queue.size).to eq(1)
       end
     end
 
@@ -260,19 +243,12 @@ describe LogStash::Inputs::HTTP_Poller do
         }
       }
       it "should run at the schedule" do
-        instance = klass.new(opts)
-        instance.register
-        queue = Queue.new
-        runner = Thread.new do
-          instance.run(queue)
+        run_plugin_and_yield_queue(plugin, sleep: 5) do |queue|
+          #T       0123456
+          #events  x x x x
+          #expects 3 events at T=5
+          expect(queue.size).to be_between(2, 3)
         end
-        #T       0123456
-        #events  x x x x
-        #expects 3 events at T=5
-        sleep 5
-        instance.stop
-        runner.join
-        expect(queue.size).to be_between(2, 3)
       end
     end
 
@@ -286,20 +262,25 @@ describe LogStash::Inputs::HTTP_Poller do
         }
       }
       it "should run at the schedule" do
-        instance = klass.new(opts)
-        instance.register
-        queue = Queue.new
-        runner = Thread.new do
-          instance.run(queue)
+        run_plugin_and_yield_queue(plugin, sleep: 2.5) do |queue|
+          try(5) { expect(queue.size).to eq(1) }
         end
-        try(3) do
-          sleep(3)
-          expect(queue.size).to eq(1)
-        end
-        instance.stop
-        runner.join
-        expect(queue.size).to eq(1)
       end
+    end
+  end
+
+  def run_plugin_and_yield_queue(plugin, sleep: nil)
+    plugin.register
+    queue = Queue.new
+    begin
+      runner = Thread.new do
+        plugin.run(queue)
+      end
+      sleep(sleep) if sleep
+      yield(queue)
+    ensure
+      plugin.stop
+      runner.join if runner
     end
   end
 
@@ -416,9 +397,6 @@ describe LogStash::Inputs::HTTP_Poller do
         let(:payload) { {"a" => 2, "hello" => ["a", "b", "c"]} }
         let(:response_body) { LogStash::Json.dump(payload) }
         let(:opts) { default_opts }
-        let(:instance) {
-          klass.new(opts)
-        }
         let(:name) { default_name }
         let(:url) { default_url }
         let(:code) { 202 }
@@ -428,14 +406,14 @@ describe LogStash::Inputs::HTTP_Poller do
         }
 
         before do
-          instance.register
+          plugin.register
           u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
-          instance.client.stub(u,
+          plugin.client.stub(u,
                                :body => response_body,
                                :code => code
           )
-          allow(instance).to receive(:decorate)
-          instance.send(:run_once, queue)
+          allow(plugin).to receive(:decorate)
+          plugin.send(:run_once, queue)
         end
 
         it "should have a matching message" do
@@ -443,7 +421,7 @@ describe LogStash::Inputs::HTTP_Poller do
         end
 
         it "should decorate the event" do
-          expect(instance).to have_received(:decorate).once
+          expect(plugin).to have_received(:decorate).once
         end
 
         include_examples("matching metadata")
@@ -451,7 +429,7 @@ describe LogStash::Inputs::HTTP_Poller do
         context "with an empty body" do
           let(:response_body) { "" }
           it "should return an empty event" do
-            instance.send(:run_once, queue)
+            plugin.send(:run_once, queue)
             headers_field = ecs_select[disabled: "[#{metadata_target}][response_headers]",
                                       v1: "[#{metadata_target}][input][http_poller][response][headers]"]
             expect(event.get("#{headers_field}[content-length]")).to eql("0")
@@ -466,7 +444,7 @@ describe LogStash::Inputs::HTTP_Poller do
           }
 
           it "should not have any metadata on the event" do
-            instance.send(:run_once, queue)
+            plugin.send(:run_once, queue)
             expect(event.get(metadata_target)).to be_nil
           end
         end
