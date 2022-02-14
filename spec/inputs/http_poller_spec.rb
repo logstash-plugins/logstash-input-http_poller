@@ -202,15 +202,17 @@ describe LogStash::Inputs::HTTP_Poller do
       it "should run at the schedule" do
         instance = klass.new(opts)
         instance.register
-
         queue = Queue.new
-        runner = Thread.new do
-          instance.run(queue)
+        begin
+          runner = Thread.new do
+            instance.run(queue)
+          end
+          sleep 3
+          try(3) { expect(queue.size).to eq(2) }
+        ensure
+          instance.stop
+          runner.join if runner
         end
-        sleep 3
-        instance.stop
-        runner.join
-        try(3) { expect(queue.size).to eq(2) }
       end
     end
 
