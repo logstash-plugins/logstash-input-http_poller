@@ -202,7 +202,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
       it "should run at the schedule" do
         run_plugin_and_yield_queue(plugin, sleep: 3) do |queue|
-          try(3) { expect(queue.size).to eq(2) }
+          try(10) { expect(queue.size).to eq(2) }
         end
       end
     end
@@ -228,7 +228,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
       it "should run at the schedule" do
         run_plugin_and_yield_queue(plugin, sleep: 2) do |queue|
-          try(3) { expect(queue.size).to eq(1) }
+          try(5) { expect(queue.size).to eq(1) }
         end
       end
     end
@@ -247,7 +247,7 @@ describe LogStash::Inputs::HTTP_Poller do
           #T       0123456
           #events  x x x x
           #expects 3 events at T=5
-          try(3) { expect(queue.size).to be_between(2, 3) }
+          try(5) { expect(queue.size).to be_between(2, 3) }
         end
       end
     end
