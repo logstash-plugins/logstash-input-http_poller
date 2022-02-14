@@ -551,7 +551,7 @@ describe LogStash::Inputs::HTTP_Poller do
   describe "stopping" do
     let(:config) { default_opts }
     it_behaves_like "an interruptible input plugin" do
-      let(:allowed_lag) { 10 } # CI: wait till scheduler shuts down
+      let(:allowed_lag) { 20 } # CI: wait till scheduler shuts down
     end
   end
 end
