@@ -25,7 +25,8 @@ describe LogStash::Inputs::HTTP_Poller do
       "schedule" => default_schedule,
       "urls" => default_urls,
       "codec" => "json",
-      "metadata_target" => metadata_target
+      "metadata_target" => metadata_target,
+      "pool_max" => 3, "pool_max_per_route" => 1, 'keepalive' => false
     }
   }
   let(:opts) { default_opts }
