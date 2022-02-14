@@ -551,9 +551,26 @@ describe LogStash::Inputs::HTTP_Poller do
   end
 
   describe "stopping" do
-    let(:config) { default_opts }
-    it_behaves_like "an interruptible input plugin" do
-      let(:allowed_lag) { 20 } # CI: wait till scheduler shuts down
+    # let(:config) { default_opts }
+    # it_behaves_like "an interruptible input plugin" do
+    #   let(:allowed_lag) { 20 } # CI: wait till scheduler shuts down
+    # end
+
+    let(:queue) { SizedQueue.new(20) }
+    before(:each) do
+      subject.register
+      java.lang.System.gc
+    end
+
+    it "returns from run" do
+      Thread.start(queue) { |queue| loop { queue.pop } }
+      plugin_thread = Thread.new(subject, queue) { |subject, queue| subject.run(queue) }
+      # the run method is a long lived one, so it should still be running after "a bit"
+      sleep 0.5
+      try(5) { expect(plugin_thread).to be_alive }
+      # now let's actually stop the plugin
+      subject.do_stop
+      try(10) { sleep(1.0); expect(plugin_thread).to_not be_alive }
     end
   end
 end
