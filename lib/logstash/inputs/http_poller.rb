@@ -178,7 +178,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     @scheduler = Rufus::Scheduler.new(:max_work_threads => 1)
     opts = schedule_type == "every" ? { :first_in => 0.01 } : {} 
     @scheduler.send(schedule_type, schedule_value, opts) { run_once(queue) }
-    @scheduler.thread.join
+    @scheduler.join
   end
 
   def run_once(queue)
