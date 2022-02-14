@@ -35,9 +35,8 @@ describe LogStash::Inputs::HTTP_Poller do
   describe "instances" do
     subject { described_class.new(default_opts) }
 
-    before do
-      subject.register
-    end
+    before { subject.register }
+    after { subject.stop }
 
     describe "#run" do
       it "should setup a scheduler" do
@@ -336,6 +335,8 @@ describe LogStash::Inputs::HTTP_Poller do
           allow(poller).to receive(:handle_success)
           event # materialize the subject
         end
+
+        after { poller.stop }
 
         it "should enqueue a message" do
           expect(event).to be_a(LogStash::Event)
