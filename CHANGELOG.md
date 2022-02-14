@@ -1,5 +1,9 @@
-## 5.1.1
+## 5.2.1
   - Deps: unpin rufus-scheduler dependency [#130](https://github.com/logstash-plugins/logstash-input-http_poller/pull/130)
+
+## 5.2.0
+  - Feat: support ssl_verification_mode option [#131](https://github.com/logstash-plugins/logstash-input-http_poller/pull/131)
+
 
 ## 5.1.0
   - Add ECS support [#129](https://github.com/logstash-plugins/logstash-input-http_poller/pull/129)
