@@ -570,12 +570,12 @@ describe LogStash::Inputs::HTTP_Poller do
       try(5) { expect(plugin_thread).to be_alive }
       # now let's actually stop the plugin
       subject.do_stop
-      sleep 2.5
+      sleep 1.5
 
       if plugin_thread.alive?
         require 'jruby'
         runtime = org.jruby.management.Runtime.new(JRuby.runtime)
-        puts runtime.raw_thread_dump
+        puts runtime.thread_dump
         puts '-' * 150
       end
 
