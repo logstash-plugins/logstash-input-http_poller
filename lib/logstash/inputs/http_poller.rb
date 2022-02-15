@@ -68,10 +68,13 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   def shutdown_scheduler_and_release_client(opt = nil)
     if @scheduler
-      @scheduler.shutdown(opt) # on newer Rufus (3.8) this joins on the scheduler thread
       thread = @scheduler.thread
-      thread.wakeup if thread && thread.status == 'sleep'
+      @logger.debug("Shutting down scheduler", scheduler: @scheduler, thread: thread)
+      thread.wakeup if thread && thread.status
+      @scheduler.shutdown(opt) # on newer Rufus (3.8) this joins on the scheduler thread
+      thread.wakeup if thread && thread.status
     end
+    @logger.debug("Closing http client", client: client)
     close_client!
   end
   private :shutdown_scheduler_and_release_client
