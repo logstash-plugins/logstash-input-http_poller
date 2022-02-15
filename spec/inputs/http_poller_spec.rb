@@ -576,12 +576,10 @@ describe LogStash::Inputs::HTTP_Poller do
       puts runtime.thread_dump
       puts '-' * 150
 
-      puts "1PLUGIN THREAD alive? : #{plugin_thread.alive?.inspect}"
-
       try(10) { expect(plugin_thread).to_not be_alive }
-
-      puts "2PLUGIN THREAD alive? : #{plugin_thread.alive?.inspect}"
-      puts runtime.thread_dump
+      if plugin_thread.alive?
+        puts runtime.thread_dump
+      end
     end
   end
 end
