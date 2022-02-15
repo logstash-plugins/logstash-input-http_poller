@@ -202,7 +202,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
       it "should run at the schedule" do
         run_plugin_and_yield_queue(plugin, sleep: 3) do |queue|
-          try(10) { expect(queue.size).to eq(2) }
+          try(5) { expect(queue.size).to be >= 2 }
         end
       end
     end
@@ -219,7 +219,7 @@ describe LogStash::Inputs::HTTP_Poller do
 
       before do
         Timecop.travel(Time.new(2000,1,1,0,0,0,'+00:00'))
-        Timecop.scale(60 * 5)
+        Timecop.scale (60 * 5) / 2
       end
 
       after do
