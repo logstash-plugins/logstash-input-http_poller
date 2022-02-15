@@ -3,5 +3,5 @@ import:
 
 env:
   jobs: # test with old scheduler version (3.0 was locked in LS 7.x)
-    - ELASTIC_STACK_VERSION=7.x RUFUS_SCHEDULER_VERSION=3.0.9 LOG_LEVEL=info
+    - ELASTIC_STACK_VERSION=7.x RUFUS_SCHEDULER_VERSION=3.0.9 LOG_LEVEL=debug
     - ELASTIC_STACK_VERSION=8.2.0 RUFUS_SCHEDULER_VERSION=3.0.9
