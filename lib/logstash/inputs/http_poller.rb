@@ -71,7 +71,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       thread = @scheduler.thread
       thread.wakeup if thread && thread.status == 'sleep'
     end
-    close_client!
   end
   private :shutdown_scheduler_and_release_client
 
@@ -206,25 +205,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     client.async.send(method, *request_opts).
       on_success {|response| handle_success(queue, name, request, response, Time.now - started) }.
       on_failure {|exception| handle_failure(queue, name, request, exception, Time.now - started) }
-  end
-
-  def close_client!
-    ObjectSpace.undefine_finalizer client # avoid leaking - waiting for runtime shutdown!
-
-    finalizers = client.instance_variable_get :@finalizers
-    finalizers.each do |obj, args|
-      begin
-        obj.send(*args) if obj.weakref_alive?
-      rescue => e
-        logger.debug "failed to #{args.first} http client resource: #{obj}", exception: e.class, message: e.message
-      end
-    end
-
-    begin
-      client.close
-    rescue => e
-      logger.warn "failed while closing http client", exception: e.class, message: e.message
-    end
   end
 
   private
