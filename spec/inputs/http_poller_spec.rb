@@ -556,26 +556,4 @@ describe LogStash::Inputs::HTTP_Poller do
       let(:allowed_lag) { 10 } # CI: wait till scheduler shuts down
     end
   end
-
-  describe "closing" do
-    let(:config) { default_opts.merge "schedule" => '* * * * *' }
-
-    let(:queue) { SizedQueue.new(20) }
-    before(:each) do
-      subject.register
-    end
-
-    it "returns from run" do
-      Thread.start(queue) { |queue| loop { queue.pop } }
-      plugin_thread = Thread.new(subject, queue) { |subject, queue| subject.run(queue) }
-      # the run method is a long lived one, so it should still be running after "a bit"
-      sleep 0.5
-      try(5) { expect(plugin_thread).to be_alive }
-
-      subject.do_close
-      sleep 2.5
-
-      try(10) { expect(plugin_thread).to_not be_alive }
-    end
-  end
 end
