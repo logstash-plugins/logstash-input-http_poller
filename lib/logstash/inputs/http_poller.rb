@@ -55,9 +55,12 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     setup_requests!
   end
 
+  # @overload
   def stop
-    Stud.stop!(@interval_thread) if @interval_thread
-    @scheduler.stop if @scheduler
+    if @scheduler
+      @scheduler.shutdown # on newer Rufus (3.8) this joins on the scheduler thread
+    end
+    # TODO implement client.close as we as releasing it's pooled resources!
   end
 
   private
@@ -163,16 +166,15 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     #schedule hash must contain exactly one of the allowed keys
     msg_invalid_schedule = "Invalid config. schedule hash must contain " +
       "exactly one of the following keys - cron, at, every or in"
-    raise Logstash::ConfigurationError, msg_invalid_schedule if @schedule.keys.length !=1
+    raise Logstash::ConfigurationError, msg_invalid_schedule if @schedule.keys.length != 1
     schedule_type = @schedule.keys.first
     schedule_value = @schedule[schedule_type]
     raise LogStash::ConfigurationError, msg_invalid_schedule unless Schedule_types.include?(schedule_type)
 
     @scheduler = Rufus::Scheduler.new(:max_work_threads => 1)
-    #as of v3.0.9, :first_in => :now doesn't work. Use the following workaround instead
     opts = schedule_type == "every" ? { :first_in => 0.01 } : {} 
     @scheduler.send(schedule_type, schedule_value, opts) { run_once(queue) }
-    @scheduler.join
+    @scheduler.thread.join # due newer rufus (3.8) doing a blocking operation on scheduler.join
   end
 
   def run_once(queue)
