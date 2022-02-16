@@ -57,7 +57,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   # @overload
   def stop
-    if @scheduler && @scheduler.thread && @scheduler.thread.status
+    if @scheduler
       @scheduler.shutdown # on newer Rufus (3.8) this joins on the scheduler thread
     end
     # TODO implement client.close as we as releasing it's pooled resources!
