@@ -4,7 +4,6 @@ require "logstash/namespace"
 require "logstash/plugin_mixins/http_client"
 require "socket" # for Socket.gethostname
 require "manticore"
-require "rufus/scheduler"
 require "logstash/plugin_mixins/ecs_compatibility_support"
 require 'logstash/plugin_mixins/ecs_compatibility_support/target_check'
 require 'logstash/plugin_mixins/validator_support/field_reference_validation_adapter'
@@ -48,7 +47,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   config :metadata_target, :validate => :string, :default => '@metadata'
 
   public
-  Schedule_types = %w(cron every at in)
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
@@ -188,7 +186,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     raise Logstash::ConfigurationError, msg_invalid_schedule if @schedule.keys.length != 1
     schedule_type = @schedule.keys.first
     schedule_value = @schedule[schedule_type]
-    raise LogStash::ConfigurationError, msg_invalid_schedule unless Schedule_types.include?(schedule_type)
+    raise LogStash::ConfigurationError, msg_invalid_schedule unless %w(cron every at in).include?(schedule_type)
 
     opts = schedule_type == "every" ? { first_in: 0.01 } : {}
     scheduler.public_send(schedule_type, schedule_value, opts) { run_once(queue) }
