@@ -58,12 +58,12 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   # @overload
   def stop
     # TODO implement client.close as we as releasing it's pooled resources!
-    shutdown_scheduler_and_release_client
+    shutdown_scheduler_and_release_client(:wait)
   end
 
   # @overload
   def close
-    shutdown_scheduler_and_release_client(:kill)
+    shutdown_scheduler_and_release_client
   end
 
   def shutdown_scheduler_and_release_client(opt = nil)
