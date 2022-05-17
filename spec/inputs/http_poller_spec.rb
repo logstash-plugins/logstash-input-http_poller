@@ -227,7 +227,7 @@ describe LogStash::Inputs::HTTP_Poller do
       end
 
       it "should run at the schedule" do
-        run_plugin_and_yield_queue(plugin, sleep: 2) do |queue|
+        run_plugin_and_yield_queue(plugin, sleep: 4.05) do |queue|
           try(5) { expect(queue.size).to eq(1) }
         end
       end
@@ -247,7 +247,7 @@ describe LogStash::Inputs::HTTP_Poller do
           #T       0123456
           #events  x x x x
           #expects 3 events at T=5
-          try(5) { expect(queue.size).to be_between(2, 3) }
+          try(10) { expect(queue.size).to be_between(2, 3) }
         end
       end
     end
@@ -255,15 +255,15 @@ describe LogStash::Inputs::HTTP_Poller do
     context "given 'in' expression" do
       let(:opts) {
         {
-          "schedule" => { "in" => "2s"},
+          "schedule" => { "in" => "1s"},
           "urls" => default_urls,
           "codec" => "json",
           "metadata_target" => metadata_target
         }
       }
       it "should run at the schedule" do
-        run_plugin_and_yield_queue(plugin, sleep: 2.5) do |queue|
-          try(5) { expect(queue.size).to eq(1) }
+        run_plugin_and_yield_queue(plugin, sleep: 2.05) do |queue|
+          try(10) { expect(queue.size).to eq(1) }
         end
       end
     end
