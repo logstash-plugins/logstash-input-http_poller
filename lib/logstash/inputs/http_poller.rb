@@ -218,24 +218,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     rescue => e
       logger.warn "failed while closing http client", exception: e.class, message: e.message
     end
-
-    begin
-      client.clear_pending
-      client.instance_variable_get(:@async_requests).close
-    rescue => e
-      logger.warn "failed while clearing async queue", exception: e.class, message: e.message
-    end
-
-    ObjectSpace.undefine_finalizer client # avoid leaking - waiting for runtime shutdown!
-
-    finalizers = client.instance_variable_get :@finalizers
-    finalizers.each do |obj, args|
-      begin
-        obj.send(*args) if obj.weakref_alive?
-      rescue => e
-        logger.debug "failed to #{args.first} http client resource: #{obj}", exception: e.class, message: e.message
-      end
-    end
+    #client.clear_pending
   end
 
   private
