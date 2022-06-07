@@ -57,27 +57,27 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   # @overload
   def stop
-    # TODO implement client.close as we as releasing it's pooled resources!
-    shutdown_scheduler_and_release_client(:wait)
+    shutdown_scheduler_and_close_client(:wait)
   end
 
   # @overload
   def close
-    shutdown_scheduler_and_release_client
+    shutdown_scheduler_and_close_client
   end
 
-  def shutdown_scheduler_and_release_client(opt = nil)
+  def shutdown_scheduler_and_close_client(opt = nil)
     if @scheduler
-      thread = @scheduler.thread
-      @logger.debug("Shutting down scheduler", scheduler: @scheduler, thread: thread)
-      thread.wakeup if thread && thread.status
+      @logger.debug("Shutting down scheduler", scheduler: @scheduler)
       @scheduler.shutdown(opt) # on newer Rufus (3.8) this joins on the scheduler thread
-      thread.wakeup if thread && thread.status
     end
     @logger.debug("Closing http client", client: client)
-    close_client!
+    begin
+      client.close # since Manticore 0.9.0 this shuts-down/closes all resources
+    rescue => e
+      logger.warn "failed while closing http client", exception: e.class, message: e.message
+    end
   end
-  private :shutdown_scheduler_and_release_client
+  private :shutdown_scheduler_and_close_client
 
   private
   def setup_requests!
@@ -210,15 +210,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     client.async.send(method, *request_opts).
       on_success {|response| handle_success(queue, name, request, response, Time.now - started) }.
       on_failure {|exception| handle_failure(queue, name, request, exception, Time.now - started) }
-  end
-
-  def close_client!
-    begin
-      client.close
-    rescue => e
-      logger.warn "failed while closing http client", exception: e.class, message: e.message
-    end
-    #client.clear_pending
   end
 
   private
