@@ -418,6 +418,10 @@ describe LogStash::Inputs::HTTP_Poller do
           plugin.send(:run_once, queue)
         end
 
+        after do
+          plugin.close
+        end
+
         it "should have a matching message" do
           expect(event.to_hash).to include(payload)
         end
