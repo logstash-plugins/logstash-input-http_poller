@@ -410,10 +410,7 @@ describe LogStash::Inputs::HTTP_Poller do
         before do
           plugin.register
           u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
-          plugin.client.stub(u,
-                               :body => response_body,
-                               :code => code
-          )
+          plugin.client.stub(u, :body => response_body, :code => code)
           allow(plugin).to receive(:decorate)
           plugin.send(:run_once, queue)
         end
