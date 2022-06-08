@@ -49,8 +49,6 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
-    @logger.info("Registering http_poller Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
-
     setup_ecs_field!
     setup_requests!
   end
@@ -66,16 +64,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   end
 
   def shutdown_scheduler_and_close_client(opt = nil)
-    @logger.debug("Closing http client", client: client)
+    @logger.debug("closing http client", client: client)
     begin
       client.close # since Manticore 0.9.0 this shuts-down/closes all resources
     rescue => e
       details = { exception: e.class, message: e.message }
-      details[:backtrace] = e.backtrace if logger.info?
-      logger.warn "failed while closing http client", details
+      details[:backtrace] = e.backtrace if @logger.debug?
+      @logger.info "failed closing http client", details
     end
     if @scheduler
-      @logger.debug("Shutting down scheduler", scheduler: @scheduler)
+      @logger.debug("shutting down scheduler", scheduler: @scheduler)
       @scheduler.shutdown(opt) # on newer Rufus (3.8) this joins on the scheduler thread
     end
   end
