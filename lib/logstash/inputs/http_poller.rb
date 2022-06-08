@@ -203,7 +203,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   private
   def request_async(queue, name, request)
-    @logger.debug? && @logger.debug("Fetching URL", :name => name, :url => request)
+    @logger.debug? && @logger.debug("async queueing fetching url", name: name, url: request)
     started = Time.now
 
     method, *request_opts = request
@@ -220,6 +220,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   private
   def handle_success(queue, name, request, response, execution_time)
+    @logger.debug? && @logger.debug("success fetching url", name: name, url: request)
     body = response.body
     # If there is a usable response. HEAD requests are `nil` and empty get
     # responses come up as "" which will cause the codec to not yield anything
@@ -258,6 +259,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   # Beware, on old versions of manticore some uncommon failures are not handled
   def handle_failure(queue, name, request, exception, execution_time)
+    @logger.debug? && @logger.debug("failed fetching url", name: name, url: request)
     event = event_factory.new_event
     event.tag("_http_request_failure")
     apply_metadata(event, name, request, nil, execution_time)
