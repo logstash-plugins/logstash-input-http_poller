@@ -195,10 +195,13 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   def run_once(queue)
     @requests.each do |name, request|
+      # prevent executing a scheduler kick after the plugin has been stop-ed
+      # this could easily happen as the scheduler shutdown is not immediate
+      return if stop?
       request_async(queue, name, request)
     end
 
-    client.execute!
+    client.execute! unless stop?
   end
 
   private
