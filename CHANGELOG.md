@@ -1,3 +1,6 @@
+## 5.3.1
+  - Fix: make sure plugin is closing the http client [#130](https://github.com/logstash-plugins/logstash-input-http_poller/pull/130)
+
 ## 5.3.0
   - Feat: added ssl_supported_protocols option [#133](https://github.com/logstash-plugins/logstash-input-http_poller/pull/133)
 
