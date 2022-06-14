@@ -49,19 +49,35 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
-    @logger.info("Registering http_poller Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
-
     setup_ecs_field!
     setup_requests!
   end
 
   # @overload
   def stop
-    if @scheduler
-      @scheduler.shutdown # on newer Rufus (3.8) this joins on the scheduler thread
-    end
-    # TODO implement client.close as we as releasing it's pooled resources!
+    shutdown_scheduler_and_close_client(:wait)
   end
+
+  # @overload
+  def close
+    shutdown_scheduler_and_close_client
+  end
+
+  def shutdown_scheduler_and_close_client(opt = nil)
+    @logger.debug("closing http client", client: client)
+    begin
+      client.close # since Manticore 0.9.0 this shuts-down/closes all resources
+    rescue => e
+      details = { exception: e.class, message: e.message }
+      details[:backtrace] = e.backtrace if @logger.debug?
+      @logger.warn "failed closing http client", details
+    end
+    if @scheduler
+      @logger.debug("shutting down scheduler", scheduler: @scheduler)
+      @scheduler.shutdown(opt) # on newer Rufus (3.8) this joins on the scheduler thread
+    end
+  end
+  private :shutdown_scheduler_and_close_client
 
   private
   def setup_requests!
@@ -179,15 +195,18 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   def run_once(queue)
     @requests.each do |name, request|
+      # prevent executing a scheduler kick after the plugin has been stop-ed
+      # this could easily happen as the scheduler shutdown is not immediate
+      return if stop?
       request_async(queue, name, request)
     end
 
-    client.execute!
+    client.execute! unless stop?
   end
 
   private
   def request_async(queue, name, request)
-    @logger.debug? && @logger.debug("Fetching URL", :name => name, :url => request)
+    @logger.debug? && @logger.debug("async queueing fetching url", name: name, url: request)
     started = Time.now
 
     method, *request_opts = request
@@ -204,6 +223,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   private
   def handle_success(queue, name, request, response, execution_time)
+    @logger.debug? && @logger.debug("success fetching url", name: name, url: request)
     body = response.body
     # If there is a usable response. HEAD requests are `nil` and empty get
     # responses come up as "" which will cause the codec to not yield anything
@@ -242,6 +262,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   # Beware, on old versions of manticore some uncommon failures are not handled
   def handle_failure(queue, name, request, exception, execution_time)
+    @logger.debug? && @logger.debug("failed fetching url", name: name, url: request)
     event = event_factory.new_event
     event.tag("_http_request_failure")
     apply_metadata(event, name, request, nil, execution_time)

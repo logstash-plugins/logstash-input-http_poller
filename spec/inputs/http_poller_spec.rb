@@ -7,6 +7,15 @@ require "timecop"
 require 'rspec/matchers/built_in/raise_error.rb'
 require 'logstash/plugin_mixins/ecs_compatibility_support/spec_helper'
 
+begin
+  # TODO: CI work-around - will most likely be moved to the scheduler mixin
+  require 'et-orbi.rb' # a dependency of rufus-scheduler since 3.4
+  ::EtOrbi::EoTime.now # might take a long time to initialize - loading time zone
+  # data (from tz-info) and thus gets un-predictable on CI, since the scheduler worker
+  # thread might be stuck starting while we attempt to shutdown in a given time frame
+rescue LoadError
+end
+
 describe LogStash::Inputs::HTTP_Poller do
   let(:metadata_target) { "_http_poller_metadata" }
   let(:queue) { Queue.new }
@@ -201,8 +210,8 @@ describe LogStash::Inputs::HTTP_Poller do
       end
 
       it "should run at the schedule" do
-        run_plugin_and_yield_queue(plugin, sleep: 3) do |queue|
-          try(5) { expect(queue.size).to be >= 2 }
+        run_plugin_and_yield_queue(plugin, sleep: 3.1) do |queue|
+          try(10) { expect(queue.size).to be >= 2 }
         end
       end
     end
@@ -227,8 +236,8 @@ describe LogStash::Inputs::HTTP_Poller do
       end
 
       it "should run at the schedule" do
-        run_plugin_and_yield_queue(plugin, sleep: 2) do |queue|
-          try(5) { expect(queue.size).to eq(1) }
+        run_plugin_and_yield_queue(plugin, sleep: 4.1) do |queue|
+          try(10) { expect(queue.size).to eq(1) }
         end
       end
     end
@@ -247,7 +256,7 @@ describe LogStash::Inputs::HTTP_Poller do
           #T       0123456
           #events  x x x x
           #expects 3 events at T=5
-          try(5) { expect(queue.size).to be_between(2, 3) }
+          try(10) { expect(queue.size).to be_between(2, 3) }
         end
       end
     end
@@ -255,15 +264,15 @@ describe LogStash::Inputs::HTTP_Poller do
     context "given 'in' expression" do
       let(:opts) {
         {
-          "schedule" => { "in" => "2s"},
+          "schedule" => { "in" => "1s"},
           "urls" => default_urls,
           "codec" => "json",
           "metadata_target" => metadata_target
         }
       }
       it "should run at the schedule" do
-        run_plugin_and_yield_queue(plugin, sleep: 2.5) do |queue|
-          try(5) { expect(queue.size).to eq(1) }
+        run_plugin_and_yield_queue(plugin, sleep: 2.05) do |queue|
+          try(10) { expect(queue.size).to eq(1) }
         end
       end
     end
@@ -410,12 +419,13 @@ describe LogStash::Inputs::HTTP_Poller do
         before do
           plugin.register
           u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
-          plugin.client.stub(u,
-                               :body => response_body,
-                               :code => code
-          )
+          plugin.client.stub(u, :body => response_body, :code => code)
           allow(plugin).to receive(:decorate)
           plugin.send(:run_once, queue)
+        end
+
+        after do
+          plugin.close
         end
 
         it "should have a matching message" do
