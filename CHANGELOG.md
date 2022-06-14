@@ -1,3 +1,6 @@
+## 5.4.0
+  - Refactor: start using scheduler mixin [#134](https://github.com/logstash-plugins/logstash-input-http_poller/pull/134)
+
 ## 5.3.1
   - Fix: make sure plugin is closing the http client [#130](https://github.com/logstash-plugins/logstash-input-http_poller/pull/130)
 
