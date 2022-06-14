@@ -7,15 +7,6 @@ require "timecop"
 require 'rspec/matchers/built_in/raise_error.rb'
 require 'logstash/plugin_mixins/ecs_compatibility_support/spec_helper'
 
-begin
-  # TODO: CI work-around - will most likely be moved to the scheduler mixin
-  require 'et-orbi.rb' # a dependency of rufus-scheduler since 3.4
-  ::EtOrbi::EoTime.now # might take a long time to initialize - loading time zone
-  # data (from tz-info) and thus gets un-predictable on CI, since the scheduler worker
-  # thread might be stuck starting while we attempt to shutdown in a given time frame
-rescue LoadError
-end
-
 describe LogStash::Inputs::HTTP_Poller do
   let(:metadata_target) { "_http_poller_metadata" }
   let(:queue) { Queue.new }
