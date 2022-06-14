@@ -56,15 +56,15 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   # @overload
   def stop
-    shutdown_scheduler_and_close_client(:wait)
+    close_client
   end
 
   # @overload
   def close
-    shutdown_scheduler_and_close_client
+    close_client
   end
 
-  def shutdown_scheduler_and_close_client(opt = nil)
+  def close_client
     @logger.debug("closing http client", client: client)
     begin
       client.close # since Manticore 0.9.0 this shuts-down/closes all resources
@@ -73,12 +73,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       details[:backtrace] = e.backtrace if @logger.debug?
       @logger.warn "failed closing http client", details
     end
-    if @scheduler
-      @logger.debug("shutting down scheduler", scheduler: @scheduler)
-      @scheduler.shutdown(opt) # on newer Rufus (3.8) this joins on the scheduler thread
-    end
   end
-  private :shutdown_scheduler_and_close_client
+  private :close_client
 
   private
   def setup_requests!
