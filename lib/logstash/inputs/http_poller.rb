@@ -70,7 +70,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     rescue => e
       details = { exception: e.class, message: e.message }
       details[:backtrace] = e.backtrace if @logger.debug?
-      @logger.info "failed closing http client", details
+      @logger.warn "failed closing http client", details
     end
     if @scheduler
       @logger.debug("shutting down scheduler", scheduler: @scheduler)
