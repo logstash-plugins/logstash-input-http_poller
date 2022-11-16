@@ -62,7 +62,7 @@ output {
 }
 ----------------------------------
 
-Using the HTTP poller with custom a custom CA or self signed cert.
+==== Using the HTTP poller with custom a custom CA or self signed cert.
 
 If you have a self signed cert you will need to convert your server's certificate to a valid# `.jks` or `.p12` file. An easy way to do it is to run the following one-liner, substituting your server's URL for the placeholder `MYURL` and `MYPORT`.
 
@@ -84,6 +84,27 @@ The above snippet will create two files `downloaded_cert.pem` and `downloaded_tr
    truststore_password => "mypassword"
    schedule => { cron => "* * * * * UTC"}
  }
+----------------------------------
+
+==== Using Http_poller to query Elasticsearch
+
+This plugin can be used to send a request body to Elasticsearch then process the response. This is especially useful for getting aggregation results.
+
+[source,ruby]
+----------------------------------
+http_poller {
+  urls => {
+    myESurl => {
+      url => "http://localhost:9200/metricbeat-*/_search"
+      body => '{"aggs":{"1":{"avg":{"field":"system.cpu.total.pct"}}},"size":0,"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":"now-10m/m","lte":"now/m"}}}]}}}'
+      method => post
+      headers => {
+        "Content-Type" => "application/json"
+      }
+    }
+  }
+  schedule => { every => "10m" }
+}
 ----------------------------------
 
 
@@ -126,6 +147,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 |=======================================================================
 |Setting |Input type|Required
 | <<plugins-{type}s-{plugin}-automatic_retries>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-body>> |<<string,string>>|no
 | <<plugins-{type}s-{plugin}-cacert>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-client_cert>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-client_key>> |a valid filesystem path|No
@@ -171,6 +193,14 @@ input plugins.
 How many times should the client retry a failing URL. We highly recommend NOT setting this value
 to zero if keepalive is enabled. Some servers incorrectly end keepalives early requiring a retry!
 Note: if `retry_non_idempotent` is set only GET, HEAD, PUT, DELETE, OPTIONS, and TRACE requests will be retried.
+
+id="plugins-{type}s-{plugin}-body"]
+===== `body` 
+
+  * Value type is <<string,string>>
+  * There is no default value for this setting.
+
+Request body to send with each request. Note that you must set this per-URL.
 
 [id="plugins-{type}s-{plugin}-cacert"]
 ===== `cacert` 
