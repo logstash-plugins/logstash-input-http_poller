@@ -174,12 +174,12 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       end
       if spec[:pagination]
         err_msg = "Pagination had a invalid value for concurrent_threads, start_page, end_page, page_parameter, last_run_metadata_path or delete_last_run_metadata!"
-        raise LogStash::ConfigurationError, err_msg if !spec[:pagination]["start_page"] || !spec[:pagination]["start_page"].is_a?(Integer)
-        raise LogStash::ConfigurationError, err_msg if !spec[:pagination]["end_page"] || !spec[:pagination]["end_page"].is_a?(Integer)
-        raise LogStash::ConfigurationError, err_msg if !spec[:pagination]["page_parameter"] || !spec[:pagination]["page_parameter"].is_a?(String)
-        raise LogStash::ConfigurationError, err_msg if spec[:pagination]["concurrent_threads"] && !spec[:pagination]["concurrent_threads"].is_a?(Integer)
-        raise LogStash::ConfigurationError, err_msg if spec[:pagination]["last_run_metadata_path"] && !spec[:pagination]["last_run_metadata_path"].is_a?(String)
-        raise LogStash::ConfigurationError, err_msg if spec[:pagination]["delete_last_run_metadata"] && !["true", "false"].include?(spec[:pagination]["delete_last_run_metadata"])
+        raise LogStash::ConfigurationError, err_msg if (!spec[:pagination]["start_page"] || !spec[:pagination]["start_page"].is_a?(Integer)) ||
+          (!spec[:pagination]["end_page"] || !spec[:pagination]["end_page"].is_a?(Integer)) ||
+          (!spec[:pagination]["page_parameter"] || !spec[:pagination]["page_parameter"].is_a?(String)) ||
+          (spec[:pagination]["concurrent_threads"] && !spec[:pagination]["concurrent_threads"].is_a?(Integer)) ||
+          (spec[:pagination]["last_run_metadata_path"] && !spec[:pagination]["last_run_metadata_path"].is_a?(String)) ||
+          (spec[:pagination]["delete_last_run_metadata"] && !["true", "false"].include?(spec[:pagination]["delete_last_run_metadata"]))
       end
       if spec[:failure_mode]
         raise LogStash::ConfigurationError, "Invalid value for failure_mode!" if !["retry", "stop", "continue"].include?(spec[:failure_mode])
@@ -216,14 +216,13 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   private
   def handle_pagination(queue, name, request)
-    method = request[0]
-    url = request[1]
-    pagination = request[2][:pagination]
-    max_threads = !pagination["concurrent_requests"].nil? ? pagination["concurrent_requests"] : 1
+    method, url, pagination = request
+    pagination = pagination[:pagination]
+    concurrent_requests = !pagination["concurrent_requests"].nil? ? pagination["concurrent_requests"] : 1
     state_file = pagination["last_run_metadata_path"]
     current_page, in_progress_pages = @state_handler.start_paginated_request(name, state_file, pagination["start_page"] - 1, 1)
     in_progress_pages.each do |page|
-      create_paginated_request(queue, name, request, page, max_threads, pagination)
+      create_paginated_request(queue, name, request, page, pagination)
     end
     client.execute!
 
@@ -231,11 +230,11 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       break if stop?
       current_page.getAndIncrement
       @state_handler.add_page(name, current_page)
-      create_paginated_request(queue, name, request, current_page.get, max_threads, pagination)
-      if @state_handler.in_progress_pages.size >= max_threads
+      create_paginated_request(queue, name, request, current_page.get, pagination)
+      if @state_handler.in_progress_pages.size >= concurrent_requests
         client.execute!
       end
-      @state_handler.wait_for_change(name, max_threads - 1, self)
+      @state_handler.wait_for_change(name, concurrent_requests - 1, self)
     end
 
     client.execute! unless stop?
@@ -251,7 +250,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   end
 
   private
-  def create_paginated_request(queue, name, request, current_page, max_threads, pagination)
+  def create_paginated_request(queue, name, request, current_page, pagination)
     # These have to be cloned so different requests don't use the same instance
     request = request.clone
     request[2] = request[2].clone
@@ -357,16 +356,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     apply_metadata(event, name, request, response, execution_time)
     decorate(event)
     queue << event
-    rescue StandardError, java.lang.Exception => e
-      @logger.error? && @logger.error("Error eventifying response!",
-                                    :exception => e,
-                                    :exception_message => e.message,
-                                    :name => name,
-                                    :url => request,
-                                    :response => response
-      )
-    ensure
-      @state_handler.delete_page(name, request) unless @persist_in_progress_on_stop || !request[2].nil? && !request[2][:retried].nil?
+  rescue StandardError, java.lang.Exception => e
+    @logger.error? && @logger.error("Error eventifying response!",
+                                  :exception => e,
+                                  :exception_message => e.message,
+                                  :name => name,
+                                  :url => request,
+                                  :response => response
+    )
+  ensure
+    @state_handler.delete_page(name, request) unless @persist_in_progress_on_stop || !request[2].nil? && !request[2][:retried].nil?
   end
 
   # returns true if request failed
