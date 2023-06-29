@@ -6,6 +6,9 @@ require "timecop"
 # Workaround for the bug reported in https://github.com/jruby/jruby/issues/4637
 require 'rspec/matchers/built_in/raise_error.rb'
 require 'logstash/plugin_mixins/ecs_compatibility_support/spec_helper'
+require 'immutable/sorted_set'
+require 'immutable/hash'
+require 'securerandom'
 
 describe LogStash::Inputs::HTTP_Poller do
   let(:metadata_target) { "_http_poller_metadata" }
@@ -61,6 +64,113 @@ describe LogStash::Inputs::HTTP_Poller do
       end
     end
 
+    describe "#run_once using pagination" do
+      shared_examples "with 5 pages" do
+        shared_examples "send requests" do
+          context "with empty data folder" do
+            before(:example) do
+              subject { described_class.new(default_opts) }
+              default_urls.each do |name, url|
+                subject.instance_variable_get(:@state_handler).delete_state(name, url["pagination"]["last_run_metadata_path"])
+              end
+            end
+
+            it "should normalize the requests correctly" do
+              default_urls.each do |name, url|
+                subject.send(:normalize_request, url)
+              end
+            end
+
+            it "should load the state from file" do
+              default_urls.each do |name, url|
+                # Write state to file
+                writer = described_class.new(default_opts)
+                writer.register
+                state_handler = writer.instance_variable_get(:@state_handler)
+                state_handler.instance_variable_set(:@in_progress_pages, Immutable::Set.new([9]))
+                writer.instance_variable_get(:@state_handler).write_state(name, pagination["last_run_metadata_path"], java.util.concurrent.atomic.AtomicInteger.new(9))
+
+                expect(subject).to receive(:request_bg).with(queue, name, anything).exactly(2).times
+                .and_invoke(lambda { |queue, name, request|
+                  subject.instance_variable_get(:@state_handler).delete_page(name, request)
+                })
+                subject.send(:run_once, queue) # :run_once is a private method
+              end
+            end
+
+            it "should issue a request for each page" do
+              default_urls.each do |name, url|
+                expect(subject).to receive(:request_bg).with(queue, name, anything).exactly(5).times
+                .and_invoke(lambda { |queue, name, request|
+                  subject.instance_variable_get(:@state_handler).delete_page(name, request)
+                })
+              end
+              subject.send(:run_once, queue) # :run_once is a private method
+              # Check that each state file gets deleted
+              default_urls.each do |name, url|
+                if pagination["last_run_metadata_path"]
+                  expect(File.exists? pagination["last_run_metadata_path"]).to eq(false)
+                else
+                  expect(File.exists? subject.instance_variable_get(:@state_handler).send(:get_state_file_path, name)).to eq(false)
+                end
+              end
+            end
+          end
+        end
+        let(:default_urls) {
+          {
+            default_name => {
+              "url" => default_url,
+              "method" => "POST",
+              "pagination" => pagination
+            }
+          }
+        }
+        context "with default state file" do
+          let(:pagination) {
+            {
+              "start_page" => 6,
+              "end_page" => 10,
+              "concurrent_requests" => concurrent_requests,
+              "page_parameter" => "page"
+            }
+          }
+          include_examples "send requests"
+        end
+
+        context "with custom state file" do
+          # Create unique directory per test
+          path = ::Dir.tmpdir + "/" + SecureRandom.uuid
+          ::Dir.mkdir(path)
+          let(:pagination) {
+            {
+              "start_page" => 6,
+              "end_page" => 10,
+              "concurrent_requests" => concurrent_requests,
+              "page_parameter" => "page",
+              "last_run_metadata_path" => path + "/rspec_custom_state_file"
+            }
+          }
+          include_examples "send requests"
+        end
+      end
+
+      describe "with a big enough concurrent_requests value to run everything in one go" do
+        let(:concurrent_requests) { 5 }
+        include_examples "with 5 pages"
+      end
+
+      describe "with a small concurrent_requests value to not run everything concurrently" do
+        let(:concurrent_requests) { 2 }
+        include_examples "with 5 pages"
+      end
+
+      describe "with only 1 concurrent request" do
+        let(:concurrent_requests) { 1 }
+        include_examples "with 5 pages"
+      end
+    end
+
     describe "normalizing a request spec" do
       shared_examples "a normalized request" do
         it "should set the method correctly" do
@@ -109,6 +219,126 @@ describe LogStash::Inputs::HTTP_Poller do
 
           it "should raise an error" do
             expect { normalized }.to raise_error(LogStash::ConfigurationError)
+          end
+        end
+
+        context "with failure handling parameters" do
+          let(:failure_mode) {"retry"}
+          let(:spec_url) { "http://localhost:3000" }
+          let(:spec_method) { "post" }
+          let(:spec_opts) { {:"failure_mode" => failure_mode} }
+          let(:url) do
+            {
+              "url" => spec_url,
+              "method" => spec_method,
+            }.merge(Hash[spec_opts.map {|k,v| [k.to_s,v]}])
+          end
+
+          context "with failure_mode stop" do
+            let(:failure_mode) {"stop"}
+            include_examples "a normalized request"
+          end
+
+          context "with failure_mode retry" do
+            let(:spec_opts) {
+              {
+                :"failure_mode" => failure_mode,
+                :"retry_delay" => 3.3
+              }
+            }
+            let(:failure_mode) {"retry"}
+            include_examples "a normalized request"
+          end
+
+          context "with failure_mode continue" do
+            let(:failure_mode) {"continue"}
+            include_examples "a normalized request"
+          end
+
+          context "with invalid failure_mode" do
+            let(:failure_mode) {"invalid"}
+            it "raises an error" do
+              expect { normalized }.to raise_error(LogStash::ConfigurationError)
+            end
+          end
+          context "with invalid success_status_codes" do
+            let(:spec_opts) {
+               {
+                :"failure_mode" => "stop",
+                :"success_status_codes" => "asd"
+              }
+            }
+            it "raises an error" do
+              expect { normalized }.to raise_error(LogStash::ConfigurationError)
+            end
+          end
+        end
+
+        context "pagination" do
+          let(:spec_url) { "http://localhost:3000" }
+          let(:spec_method) { "post" }
+          let(:pagination) {
+            {
+              "start_page" => 2,
+              "end_page" => 3,
+              "page_parameter" => "page"
+            }
+          }
+          let(:url) do
+            {
+              "url" => spec_url,
+              "method" => spec_method,
+              "pagination" => pagination
+            }
+          end
+          context "with missing end_page" do
+            let(:pagination) {
+              {
+                "start_page" => 2,
+                "page_parameter" => "page"
+              }
+            }
+            it "should raise an error" do
+              expect { normalized }.to raise_error(LogStash::ConfigurationError)
+            end
+          end
+          context "with wrong type for start_page" do
+            let(:pagination) {
+              {
+                "start_page" => "wrong",
+                "end_page" => 1234,
+                "page_parameter" => "page"
+              }
+            }
+            it "should raise an error" do
+              expect { normalized }.to raise_error(LogStash::ConfigurationError)
+            end
+          end
+          context "with wrong type for concurrent_threads" do
+            let(:pagination) {
+              {
+                "start_page" => "wrong",
+                "end_page" => 1234,
+                "page_parameter" => "page",
+                "concurrent_threads" => []
+              }
+            }
+            it "should raise an error" do
+              expect { normalized }.to raise_error(LogStash::ConfigurationError)
+            end
+          end
+          context "with wrong type for last_run_metadata_path" do
+            let(:pagination) {
+              {
+                "start_page" => 1,
+                "end_page" => 1234,
+                "page_parameter" => "page",
+                "last_run_metadata_path" => 123
+              }
+            }
+            it "should raise an error" do
+              expect { normalized }.to raise_error(LogStash::ConfigurationError)
+            end
           end
         end
 
@@ -281,6 +511,75 @@ describe LogStash::Inputs::HTTP_Poller do
     ensure
       plugin.stop
       runner.join if runner
+    end
+  end
+
+  describe "failure handling" do
+    let(:payload) { {"a" => 2, "hello" => ["a", "b", "c"]} }
+    let(:response_body) { LogStash::Json.dump(payload) }
+    let(:url) {"http://localhost:3000"}
+    let(:failure_mode) {"stop"}
+    let(:retry_delay) { 0.2 }
+    let(:default_url) {
+      {
+        "method" => "post",
+        "url" => url,
+        "failure_mode" => failure_mode,
+        "success_status_codes" => [200],
+        "retry_delay" => retry_delay
+      }
+    }
+    let(:opts) { default_opts }
+    let(:name) { default_name }
+    let(:code) { 202 }
+
+    before do
+      plugin.register
+      u = url.is_a?(Hash) ? url["url"] : url # handle both complex specs and simple string URLs
+      plugin.client.stub(u, :body => response_body, :code => code)
+      allow(plugin).to receive(:decorate)
+    end
+
+    after do
+      plugin.close
+    end
+
+    context "with failure_mode stop" do
+      let(:failure_mode) { "stop" }
+      it "stops the plugin" do
+        expect(plugin.instance_variable_get(:@logger)).to receive(:error).with("Encountered request failure, stopping plugin..").once
+        plugin.send(:run_once, queue)
+        # stop gets called from another thread
+        sleep 0.5
+        expect(plugin.stop?).to eq(true)
+        allow($stderr).to receive(:puts).and_call_original
+      end
+    end
+
+    context "with failure_mode retry" do
+      let(:failure_mode) { "retry" }
+      it "retries the request" do
+        rcount = 0
+        original = plugin.method(:request_async)
+        expect(plugin).to receive(:request_async).exactly(4).times.and_invoke(lambda { |queue, name, request|
+          rcount = rcount + 1
+          return if rcount == 4
+          allow(plugin.instance_variable_get(:@logger)).to receive(:warn?).and_return(true)
+          expect(plugin.instance_variable_get(:@logger)).to receive(:warn).once.with("Encountered request failure with url '%s', trying again after %d seconds.." % [default_name, retry_delay])
+          original.call(queue, name, request)
+        })
+        plugin.send(:run_once, queue)
+      end
+    end
+
+    context "with failure_mode continue" do
+      let(:failure_mode) { "continue" }
+      it "passes the event to the queue normally" do
+        plugin.send(:run_once, queue)
+        expect(queue.size).to eq(1)
+        event = queue.pop(true)
+        expect(event.get("tags")).to eq(["_http_request_failure"])
+      end
     end
   end
 
