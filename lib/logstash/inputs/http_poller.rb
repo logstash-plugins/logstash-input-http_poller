@@ -9,6 +9,9 @@ require 'logstash/plugin_mixins/ecs_compatibility_support/target_check'
 require 'logstash/plugin_mixins/validator_support/field_reference_validation_adapter'
 require 'logstash/plugin_mixins/event_support/event_factory_adapter'
 require 'logstash/plugin_mixins/scheduler'
+require 'logstash/inputs/http_poller/state_handler'
+require 'yaml'
+require 'java'
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   include LogStash::PluginMixins::HttpClient
@@ -49,14 +52,16 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   public
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
-
     setup_ecs_field!
     setup_requests!
+    @state_handler = LogStash::Inputs::HTTPPoller::StateHandler.new(@logger, @requests)
+    @persist_in_progress_on_stop = false
   end
 
   # @overload
   def stop
     close_client
+    @state_handler.signal_waiting_threads
   end
 
   # @overload
@@ -130,17 +135,17 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       auth = spec[:auth]
       user = spec.delete(:user) || (auth && auth["user"])
       password = spec.delete(:password) || (auth && auth["password"])
-      
+
       if user.nil? ^ password.nil?
         raise LogStash::ConfigurationError, "'user' and 'password' must both be specified for input HTTP poller!"
       end
 
       if user && password
         spec[:auth] = {
-          user: user, 
+          user: user,
           pass: password,
           eager: true
-        } 
+        }
       end
       res = [method, url, spec]
     else
@@ -158,15 +163,35 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     raise LogStash::ConfigurationError, "Invalid URL #{url}" unless URI::DEFAULT_PARSER.regexp[:ABS_URI].match(url)
 
     raise LogStash::ConfigurationError, "No URL provided for request! #{url_or_spec}" unless url
-    if spec && spec[:auth]
-      if !spec[:auth][:user]
-        raise LogStash::ConfigurationError, "Auth was specified, but 'user' was not!"
+    if spec
+      if spec[:auth]
+        if !spec[:auth][:user]
+          raise LogStash::ConfigurationError, "Auth was specified, but 'user' was not!"
+        end
+        if !spec[:auth][:pass]
+          raise LogStash::ConfigurationError, "Auth was specified, but 'password' was not!"
+        end
       end
-      if !spec[:auth][:pass]
-        raise LogStash::ConfigurationError, "Auth was specified, but 'password' was not!"
+      if spec[:pagination]
+        err_msg = "Pagination had a invalid value for concurrent_threads, start_page, end_page, page_parameter, last_run_metadata_path or delete_last_run_metadata!"
+        raise LogStash::ConfigurationError, err_msg if (!spec[:pagination]["start_page"] || !spec[:pagination]["start_page"].is_a?(Integer)) ||
+          (!spec[:pagination]["end_page"] || !spec[:pagination]["end_page"].is_a?(Integer)) ||
+          (!spec[:pagination]["page_parameter"] || !spec[:pagination]["page_parameter"].is_a?(String)) ||
+          (spec[:pagination]["concurrent_threads"] && !spec[:pagination]["concurrent_threads"].is_a?(Integer)) ||
+          (spec[:pagination]["last_run_metadata_path"] && !spec[:pagination]["last_run_metadata_path"].is_a?(String)) ||
+          (spec[:pagination]["delete_last_run_metadata"] && !["true", "false"].include?(spec[:pagination]["delete_last_run_metadata"]))
+      end
+      if spec[:failure_mode]
+        raise LogStash::ConfigurationError, "Invalid value for failure_mode!" if !["retry", "stop", "continue"].include?(spec[:failure_mode])
+        raise LogStash::ConfigurationError, "failure_mode was set to retry, but no retry_delay was specified!" if spec[:failure_mode] == "retry" && !spec[:retry_delay]
+      end
+      if spec[:retry_delay] && !(spec[:retry_delay].is_a?(Float) || spec[:retry_delay].is_a?(Integer))
+        raise LogStash::ConfigurationError, "retry_delay should be a float or an integer"
+      end
+      if spec[:success_status_codes] && !spec[:success_status_codes].is_a?(Array)
+        raise LogStash::ConfigurationError, "success_status_codes should be an array of integers"
       end
     end
-
     request
   end
 
@@ -175,6 +200,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     setup_schedule(queue)
   end
 
+  private
   def setup_schedule(queue)
     #schedule hash must contain exactly one of the allowed keys
     msg_invalid_schedule = "Invalid config. schedule hash must contain " +
@@ -183,10 +209,55 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     schedule_type = @schedule.keys.first
     schedule_value = @schedule[schedule_type]
     raise LogStash::ConfigurationError, msg_invalid_schedule unless %w(cron every at in).include?(schedule_type)
-
     opts = schedule_type == "every" ? { first_in: 0.01 } : {}
     scheduler.public_send(schedule_type, schedule_value, opts) { run_once(queue) }
     scheduler.join
+  end
+
+  private
+  def handle_pagination(queue, name, request)
+    method, url, pagination = request
+    pagination = pagination[:pagination]
+    concurrent_requests = !pagination["concurrent_requests"].nil? ? pagination["concurrent_requests"] : 1
+    state_file = pagination["last_run_metadata_path"]
+    current_page, in_progress_pages = @state_handler.start_paginated_request(name, state_file, pagination["start_page"] - 1, 1)
+    in_progress_pages.each do |page|
+      create_paginated_request(queue, name, request, page, pagination)
+    end
+    client.execute!
+
+    while current_page.get < pagination["end_page"] do
+      break if stop?
+      current_page.getAndIncrement
+      @state_handler.add_page(name, current_page)
+      create_paginated_request(queue, name, request, current_page.get, pagination)
+      if @state_handler.in_progress_pages.size >= concurrent_requests
+        client.execute!
+      end
+      @state_handler.wait_for_change(name, concurrent_requests - 1, self)
+    end
+
+    client.execute! unless stop?
+    @state_handler.wait_for_change(name, 0, self) unless @persist_in_progress_on_stop
+    @state_handler.stop_pagination_state_writer
+    if stop? || pagination["delete_last_run_metadata"] == "false"
+      @state_handler.write_state(name, state_file, current_page)
+      @state_handler.stop_paginated_request()
+      return
+    end
+    @state_handler.delete_state(name, state_file)
+    @state_handler.stop_paginated_request()
+  end
+
+  private
+  def create_paginated_request(queue, name, request, current_page, pagination)
+    # These have to be cloned so different requests don't use the same instance
+    request = request.clone
+    request[2] = request[2].clone
+    query = request[2][:query].nil? ? {} : request[2][:query].clone
+    query[pagination["page_parameter"]] = current_page
+    request[2][:query] = query
+    request_bg(queue, name, request)
   end
 
   def run_once(queue)
@@ -194,9 +265,13 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
       # prevent executing a scheduler kick after the plugin has been stop-ed
       # this could easily happen as the scheduler shutdown is not immediate
       return if stop?
-      request_async(queue, name, request)
+      opts = request[2]
+      if !opts.nil? && opts.key?(:pagination)
+        handle_pagination(queue, name, request.clone)
+      else
+        request_async(queue, name, request)
+      end
     end
-
     client.execute! unless stop?
   end
 
@@ -207,7 +282,18 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     method, *request_opts = request
     client.async.send(method, *request_opts).
-      on_success {|response| handle_success(queue, name, request, response, Time.now - started) }.
+      on_success {|response| handle_success(queue, name, request, response, Time.now - started)}.
+      on_failure {|exception| handle_failure(queue, name, request, exception, Time.now - started) }
+  end
+
+  # Runs requests and event processing on multiple threads
+  private
+  def request_bg(queue, name, request)
+    started = Time.now
+
+    method, *request_opts = request
+    client.async.background.send(method, *request_opts).
+      on_success {|response| handle_success(queue, name, request, response, Time.now - started)}.
       on_failure {|exception| handle_failure(queue, name, request, exception, Time.now - started) }
   end
 
@@ -219,6 +305,7 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
   private
   def handle_success(queue, name, request, response, execution_time)
+    failed = check_failure_state(queue, name, request, nil, response)
     @logger.debug? && @logger.debug("success fetching url", name: name, url: request)
     body = response.body
     # If there is a usable response. HEAD requests are `nil` and empty get
@@ -226,12 +313,36 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     if body && body.size > 0
       decode_and_flush(@codec, body) do |decoded|
         event = @target ? targeted_event_factory.new_event(decoded.to_hash) : decoded
+        if failed
+          event.tag("_http_request_failure")
+          apply_failure_fields(event, name, request, nil, execution_time)
+        end
         handle_decoded_event(queue, name, request, response, event, execution_time)
       end
     else
       event = event_factory.new_event
+      if failed
+        event.tag("_http_request_failure")
+        apply_failure_fields(event, name, request, nil, execution_time)
+      end
       handle_decoded_event(queue, name, request, response, event, execution_time)
     end
+  rescue => e
+    @logger.error? && @logger.error("Cannot process event!",
+                                    :exception => e,
+                                    :exception_message => e.message,
+                                    :exception_backtrace => e.backtrace,
+                                    :name => name)
+
+    # If we are running in debug mode we can display more information about the
+    # specific request which could give more details about the connection.
+    @logger.debug? && @logger.debug("Cannot process event",
+                                    :exception => e,
+                                    :exception_message => e.message,
+                                    :exception_backtrace => e.backtrace,
+                                    :name => name,
+                                    :url => request)
+    handle_failure(queue, name, request, e, execution_time)
   end
 
   private
@@ -247,23 +358,84 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
     queue << event
   rescue StandardError, java.lang.Exception => e
     @logger.error? && @logger.error("Error eventifying response!",
-                                    :exception => e,
-                                    :exception_message => e.message,
-                                    :name => name,
-                                    :url => request,
-                                    :response => response
+                                  :exception => e,
+                                  :exception_message => e.message,
+                                  :name => name,
+                                  :url => request,
+                                  :response => response
     )
+  ensure
+    @state_handler.delete_page(name, request) unless @persist_in_progress_on_stop || !request[2].nil? && !request[2][:retried].nil?
+  end
+
+  # returns true if request failed
+  private
+  def check_failure_state(queue, name, request, exception, response)
+    req_opts = request[2]
+    if exception.nil? && (
+      req_opts.nil? ||
+      req_opts[:success_status_codes].nil? ||
+      req_opts[:success_status_codes].include?(response.code))
+
+      req_opts.delete(:retried) if !req_opts.nil?
+      return false
+    end
+    if req_opts.nil? ||
+      req_opts[:failure_mode].nil? ||
+      req_opts[:failure_mode] == "continue"
+
+      req_opts.delete(:retried) if !req_opts.nil?
+      return true
+    end
+    if @logger.debug?
+      @logger.debug("Encountered request failure: ", :name => name, :request => request)
+      if exception
+        logger.debug("Exception: ", :exception => exception,
+                     :exception_message => exception.message,
+                     :exception_backtrace => exception.backtrace)
+      end
+      if response
+        logger.debug("Response: ", :response => response)
+      end
+    end
+    if stop?
+      return true
+    end
+    case req_opts[:failure_mode]
+    when "retry"
+      @logger.warn? && @logger.warn("Encountered request failure with url '%s', trying again after %d seconds.." % [name, req_opts[:retry_delay]])
+      begin
+        sleep req_opts[:retry_delay]
+        req_opts[:retried] = true
+        return true if stop?
+        if req_opts[:pagination]
+          request_bg(queue, name, request)
+        else
+          request_async(queue, name, request)
+        end
+        client.execute!
+      rescue Java::JavaLang::InterruptedException
+        # this is raised when the plugin is stopped
+      end
+    when "stop"
+      @persist_in_progress_on_stop = true
+      @logger.error? && @logger.error("Encountered request failure, stopping plugin..")
+      # We have to call do_stop on a a separate thread, since it waits for the handlers to finish
+      Thread.new {do_stop}
+      return true
+    end
+    return true
   end
 
   private
   # Beware, on old versions of manticore some uncommon failures are not handled
   def handle_failure(queue, name, request, exception, execution_time)
+    check_failure_state(queue, name, request, exception, nil)
     @logger.debug? && @logger.debug("failed fetching url", name: name, url: request)
     event = event_factory.new_event
     event.tag("_http_request_failure")
     apply_metadata(event, name, request, nil, execution_time)
     apply_failure_fields(event, name, request, exception, execution_time)
-
     queue << event
   rescue StandardError, java.lang.Exception => e
       @logger.error? && @logger.error("Cannot read URL or send the error as an event!",
@@ -280,6 +452,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
                                       :exception_backtrace => e.backtrace,
                                       :name => name,
                                       :url => request)
+  ensure
+    @state_handler.delete_page(name, request) unless @persist_in_progress_on_stop || !request[2].nil? && !request[2][:retried].nil?
   end
 
   private
@@ -314,8 +488,10 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
 
     event.set(@fail_response_time_s_field, execution_time) if @fail_response_time_s_field
     event.set(@fail_response_time_ns_field, to_nanoseconds(execution_time)) if @fail_response_time_ns_field
-    event.set(@error_msg_field, exception.to_s)
-    event.set(@stack_trace_field, exception.backtrace)
+    if not exception.nil?
+      event.set(@error_msg_field, exception.to_s)
+      event.set(@stack_trace_field, exception.backtrace)
+    end
   end
 
   private
