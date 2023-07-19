@@ -1,6 +1,5 @@
 # encoding: utf-8
 require "logstash/namespace"
-require "immutable/sorted_set"
 require "fileutils"
 
 module LogStash
@@ -67,7 +66,7 @@ module LogStash
 
         private
         def start_with_default_values(name, last_run_metadata_path, default_start_page, write_interval)
-          @in_progress_pages = Immutable::SortedSet.new
+          @in_progress_pages = java.util.concurrent.ConcurrentSkipListSet.new
           start_page = java.util.concurrent.atomic.AtomicInteger.new(default_start_page)
           @state_writer_thread = start_pagination_state_writer(write_interval, name, last_run_metadata_path, start_page)
           return start_page, []
@@ -81,7 +80,7 @@ module LogStash
             return start_with_default_values(name, file_path, default_start_page, write_interval) if !pages.is_a?(Array) || !current_page.is_a?(Integer)
             current_page_atomic = java.util.concurrent.atomic.AtomicInteger.new(current_page)
             @state_writer_thread = start_pagination_state_writer(write_interval, name, file_path, current_page_atomic)
-            @in_progress_pages = Immutable::SortedSet.new(pages)
+            @in_progress_pages = java.util.concurrent.ConcurrentSkipListSet.new(pages)
             @logger.info? && @logger.info("Read status from file for url %s" % [name])
             return current_page_atomic, pages
           end
@@ -91,20 +90,16 @@ module LogStash
 
         public
         def add_page(name, page)
-          @pages_mutex.synchronize {
-            @in_progress_pages = @in_progress_pages.add(page.get)
-          }
+          @in_progress_pages.add(page.get)
         end
 
         public
         def delete_page(name, request)
           if not @in_progress_pages.nil?
             request_opts = request[2]
-            @pages_mutex.synchronize {
-              page = request_opts[:query][request_opts[:pagination]["page_parameter"]]
-              @in_progress_pages = @in_progress_pages.delete(Integer(page))
-              @pages_signal.broadcast
-            }
+            page = request_opts[:query][request_opts[:pagination]["page_parameter"]]
+            @in_progress_pages.remove(Integer(page))
+            @pages_signal.broadcast
           end
         end
 

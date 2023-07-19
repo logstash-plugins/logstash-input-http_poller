@@ -6,8 +6,6 @@ require "timecop"
 # Workaround for the bug reported in https://github.com/jruby/jruby/issues/4637
 require 'rspec/matchers/built_in/raise_error.rb'
 require 'logstash/plugin_mixins/ecs_compatibility_support/spec_helper'
-require 'immutable/sorted_set'
-require 'immutable/hash'
 require 'securerandom'
 
 describe LogStash::Inputs::HTTP_Poller do
@@ -87,7 +85,7 @@ describe LogStash::Inputs::HTTP_Poller do
                 writer = described_class.new(default_opts)
                 writer.register
                 state_handler = writer.instance_variable_get(:@state_handler)
-                state_handler.instance_variable_set(:@in_progress_pages, Immutable::Set.new([9]))
+                state_handler.instance_variable_set(:@in_progress_pages, java.util.concurrent.ConcurrentSkipListSet.new([9]))
                 writer.instance_variable_get(:@state_handler).write_state(name, pagination["last_run_metadata_path"], java.util.concurrent.atomic.AtomicInteger.new(9))
 
                 expect(subject).to receive(:request_bg).with(queue, name, anything).exactly(2).times
