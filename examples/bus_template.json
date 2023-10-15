@@ -5,10 +5,8 @@
     "number_of_replicas" : 0
   },
   "mappings": {
-    "_default_": {
-      "_all": { "enabled": false },
-      "_source": { "compress": true },
-      "properties" : {
+    "_doc": {
+        "properties" : {
         "location": { "type": "geo_point" },
         "@tags": { "type": "string", "index" : "not_analyzed" },
         "@timestamp" : { "type" : "date", "index" : "not_analyzed" }
