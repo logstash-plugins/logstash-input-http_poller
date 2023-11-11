@@ -1,3 +1,6 @@
+## 5.5.1
+ - [DOC]Remove redundant table items [#142](https://github.com/logstash-plugins/logstash-input-http_poller/pull/142)
+
 ## 5.5.0
   - Added standardized SSL settings and deprecates their non-standard counterparts. Deprecated settings will continue to work, and will provide pipeline maintainers with guidance toward using their standardized counterparts [#141](https://github.com/logstash-plugins/logstash-input-http_poller/pull/141)
   - Added new `ssl_truststore_path`, `ssl_truststore_password`, and `ssl_truststore_type` settings for configuring SSL-trust using a PKCS-12 or JKS trust store, deprecating their `truststore`, `truststore_password`, and `truststore_type` counterparts.
