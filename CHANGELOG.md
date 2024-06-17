@@ -1,3 +1,6 @@
+## 5.6.0
+  - Added new `ssl_enabled` setting for enabling/disabling the SSL configurations [#143](https://github.com/logstash-plugins/logstash-input-http_poller/pull/143)
+
 ## 5.5.1
  - [DOC]Remove redundant table items [#142](https://github.com/logstash-plugins/logstash-input-http_poller/pull/142)
 
