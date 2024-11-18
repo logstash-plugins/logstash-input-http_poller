@@ -154,8 +154,8 @@ class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
   private
   def validate_request!(url_or_spec, request)
     method, url, spec = request
-
-    raise LogStash::ConfigurationError, "Invalid URL #{url}" unless URI::DEFAULT_PARSER.regexp[:ABS_URI].match(url)
+    parser = defined?(URI::RFC2396_PARSER) ? URI::RFC2396_PARSER : URI::DEFAULT_PARSER
+    raise LogStash::ConfigurationError, "Invalid URL #{url}" unless parser.regexp[:ABS_URI].match(url)
 
     raise LogStash::ConfigurationError, "No URL provided for request! #{url_or_spec}" unless url
     if spec && spec[:auth]
