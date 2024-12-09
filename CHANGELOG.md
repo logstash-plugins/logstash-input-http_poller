@@ -1,3 +1,17 @@
+## 6.0.0
+  - SSL settings that were marked deprecated in version `5.6.0` are now marked obsolete, and will prevent the plugin from starting.
+  - These settings are:
+    - `cacert`, which should be replaced by `ssl_certificate_authorities`
+    - `client_cert`, which should be replaced by `ssl_certificate`
+    - `client_key`, which should be replaced by `ssl_key`
+    - `keystore`, which should be replaced by `ssl_keystore_path`
+    - `keystore_password`, which should be replaced by `ssl_keystore_password`
+    - `keystore_type`, which should be replaced by `ssl_keystore_password`
+    - `truststore`, which should be replaced by `ssl_truststore_path>`
+    - `truststore_password`, which should be replaced by `ssl_truststore_password`
+    - `truststore_type`, which should be replaced by `ssl_truststore_type`
+    - [#149](https://github.com/logstash-plugins/logstash-input-http_poller/pull/149)
+
 ## 5.6.0
   - Added new `ssl_enabled` setting for enabling/disabling the SSL configurations [#146](https://github.com/logstash-plugins/logstash-input-http_poller/pull/146)
 
