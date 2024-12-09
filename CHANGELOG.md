@@ -10,7 +10,7 @@
     - `truststore`, which should be replaced by `ssl_truststore_path>`
     - `truststore_password`, which should be replaced by `ssl_truststore_password`
     - `truststore_type`, which should be replaced by `ssl_truststore_type`
-    - [#xxx](https://github.com/logstash-plugins/logstash-input-http_poller/pull/xxx)
+    - [#149](https://github.com/logstash-plugins/logstash-input-http_poller/pull/149)
 
 ## 5.6.0
   - Added new `ssl_enabled` setting for enabling/disabling the SSL configurations [#146](https://github.com/logstash-plugins/logstash-input-http_poller/pull/146)
