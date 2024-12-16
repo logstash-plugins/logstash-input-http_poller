@@ -210,7 +210,7 @@ describe LogStash::Inputs::HTTP_Poller do
     context "given 'at' expression" do
       let(:opts) {
         {
-          "schedule" => { "at" => "2000-01-01 00:05:00 +0000"},
+          "schedule" => { "at" => "2000-01-01 00:15:00 +0000"},
           "urls" => default_urls,
           "codec" => "json",
           "metadata_target" => metadata_target
@@ -555,6 +555,36 @@ describe LogStash::Inputs::HTTP_Poller do
     let(:config) { default_opts }
     it_behaves_like "an interruptible input plugin" do
       let(:allowed_lag) { 10 } # CI: wait till scheduler shuts down
+    end
+  end
+
+  describe "obsolete settings" do
+    let(:default_url) { "http://localhost:2322" }
+    let(:config) {
+      {
+        "schedule" => { "cron" => "0 0 0 0 0 UTC" },
+        "urls" => default_urls,
+        "codec" => "json"
+      }
+    }
+    [{:name => 'cacert', :canonical_name => 'ssl_certificate_authorities'},
+     {:name => 'client_cert', :canonical_name => 'ssl_certificate'},
+     {:name => 'client_key', :canonical_name => 'ssl_key'},
+     {:name => "keystore", :canonical_name => 'ssl_keystore_path'},
+     {:name => 'truststore', :canonical_name => 'ssl_truststore_path'},
+     {:name => "keystore_password", :canonical_name => "ssl_keystore_password"},
+     {:name => 'truststore_password', :canonical_name => "ssl_truststore_password"},
+     {:name => "keystore_type", :canonical_name => "ssl_keystore_type"},
+     {:name => 'truststore_type', :canonical_name => 'ssl_truststore_type'}
+    ].each do |settings|
+      context "with option #{settings[:name]}" do
+        let(:obsolete_config) { config.merge(settings[:name] => 'test_value') }
+
+        it "emits an error about the setting `#{settings[:name]}` now being obsolete and provides guidance to use `#{settings[:canonical_name]}`" do
+          error_text = /The setting `#{settings[:name]}` in plugin `http_poller` is obsolete and is no longer available. Use `#{settings[:canonical_name]}` instead/i
+          expect { LogStash::Inputs::HTTP_Poller.new(obsolete_config)}.to raise_error LogStash::ConfigurationError, error_text
+        end
+      end
     end
   end
 end

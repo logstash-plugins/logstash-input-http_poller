@@ -11,7 +11,7 @@ require 'logstash/plugin_mixins/event_support/event_factory_adapter'
 require 'logstash/plugin_mixins/scheduler'
 
 class LogStash::Inputs::HTTP_Poller < LogStash::Inputs::Base
-  include LogStash::PluginMixins::HttpClient[:with_deprecated => true]
+  include LogStash::PluginMixins::HttpClient[:with_obsolete => true]
   include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled, :v1, :v8 => :v1)
   include LogStash::PluginMixins::ECSCompatibilitySupport::TargetCheck
   include LogStash::PluginMixins::EventSupport::EventFactoryAdapter
