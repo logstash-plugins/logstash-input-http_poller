@@ -1,3 +1,6 @@
+## 5.6.1
+  - Fix issue with new 'uri' gem leading to runtime exception [#148](https://github.com/logstash-plugins/logstash-input-http_poller/pull/148)
+
 ## 5.6.0
   - Added new `ssl_enabled` setting for enabling/disabling the SSL configurations [#146](https://github.com/logstash-plugins/logstash-input-http_poller/pull/146)
 
